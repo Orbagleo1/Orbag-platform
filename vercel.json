@@ -8,6 +8,7 @@
     { "src": "/kennis", "dest": "/kennis.html" },
     { "src": "/zaden", "dest": "/zaden.html" },
     { "src": "/analyse", "dest": "/analyse.html" },
+    { "src": "/account", "dest": "/account.html" },
     { "src": "/api/(.*)", "dest": "/api/$1" },
     { "src": "/(.*)", "dest": "/$1" }
   ]
