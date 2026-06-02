@@ -1,0 +1,13 @@
+{
+  "functions": {
+    "api/generate.js": { "maxDuration": 60 },
+    "api/farmer.js": { "maxDuration": 60 }
+  },
+  "routes": [
+    { "src": "/boer", "dest": "/boer.html" },
+    { "src": "/kennis", "dest": "/kennis.html" },
+    { "src": "/zaden", "dest": "/zaden.html" },
+    { "src": "/api/(.*)", "dest": "/api/$1" },
+    { "src": "/(.*)", "dest": "/$1" }
+  ]
+}
