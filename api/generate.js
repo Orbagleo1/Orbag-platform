@@ -200,8 +200,8 @@ export default async function handler(req, res) {
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'claude-haiku-4-5',
-        max_tokens: 2000,
+        model: 'claude-sonnet-4-6',
+        max_tokens: 2500,
         messages: [{ role: 'user', content: buildPrompt(d) }],
       }),
     });
@@ -213,8 +213,24 @@ export default async function handler(req, res) {
 
     const anthropicData = await anthropicRes.json();
     let text = anthropicData.content.map(b => b.type === 'text' ? b.text : '').join('');
+    console.log('stop_reason:', anthropicData.stop_reason, 'length:', text.length);
+    if (anthropicData.stop_reason === 'max_tokens') {
+      return res.status(500).json({ error: 'Response too long — please try again.' });
+    }
     text = text.replace(/```json\n?|```\n?/g, '').trim();
-    const report = JSON.parse(text);
+    // Extract JSON object if surrounded by extra text
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      console.error('No JSON found in response:', text.substring(0, 200));
+      return res.status(500).json({ error: 'AI did not return valid JSON. Please try again.' });
+    }
+    let report;
+    try {
+      report = JSON.parse(jsonMatch[0]);
+    } catch(parseErr) {
+      console.error('JSON parse error:', parseErr.message, 'text:', text.substring(0, 300));
+      return res.status(500).json({ error: 'Could not parse AI response: ' + parseErr.message });
+    }
 
     if (process.env.SUPABASE_URL && process.env.SUPABASE_KEY) {
       await fetch(`${process.env.SUPABASE_URL}/rest/v1/reports`, {
@@ -245,6 +261,7 @@ export default async function handler(req, res) {
 
     return res.status(200).json(report);
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error('Handler error:', err.message, err.stack);
+    return res.status(500).json({ error: err.message, stack: err.stack?.split('\n')[0] });
   }
 }
