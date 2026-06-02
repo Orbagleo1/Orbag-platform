@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Orbag · Regenerative Inputs Directory</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--forest:#0D3D2B;--leaf:#1D9E75;--mint:#E1F5EE;--ink:#0F1A14;--stone:#5A6862;--paper:#F7F5F0;--line:#D8D5CE;--white:#FFFFFF;--radius:10px;--amber:#BA7517;--amber-l:#FAEEDA}
+body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);font-size:14px;line-height:1.6}
+.header{background:var(--forest);padding:18px 40px;display:flex;align-items:center;justify-content:space-between}
+.logo{font-family:'DM Serif Display',serif;font-size:24px;color:#fff;text-decoration:none}
+.logo span{color:var(--leaf)}
+.nav{display:flex;gap:8px;align-items:center}
+.nav a{font-size:12px;color:rgba(255,255,255,.5);text-decoration:none;padding:6px 12px;border:0.5px solid rgba(255,255,255,.15);border-radius:6px;transition:all .15s}
+.nav a:hover,.nav a.active{color:#fff;border-color:rgba(255,255,255,.4)}
+.nav a.active{background:rgba(255,255,255,.08)}
+.hero{background:var(--forest);padding:48px 40px;text-align:center}
+.hero-eyebrow{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--leaf);margin-bottom:12px}
+.hero-title{font-family:'DM Serif Display',serif;font-size:36px;color:#fff;margin-bottom:12px;line-height:1.15}
+.hero-sub{font-size:15px;color:rgba(255,255,255,.6);max-width:560px;margin:0 auto}
+.main{max-width:1040px;margin:0 auto;padding:36px 24px}
+
+/* Category tabs */
+.cat-tabs{display:flex;gap:0;margin-bottom:28px;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;background:var(--white)}
+.cat-tab{flex:1;padding:14px 10px;text-align:center;cursor:pointer;border:none;background:transparent;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;color:var(--stone);transition:all .15s;border-right:1px solid var(--line)}
+.cat-tab:last-child{border-right:none}
+.cat-tab:hover{background:var(--paper);color:var(--ink)}
+.cat-tab.active{background:var(--forest);color:#fff}
+.cat-tab .tab-icon{font-size:18px;display:block;margin-bottom:4px}
+.cat-tab .tab-count{font-size:11px;opacity:.7;margin-top:2px}
+
+.filter-bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:20px;background:var(--white);border:1px solid var(--line);border-radius:var(--radius);padding:14px 18px}
+.filter-bar label{font-size:11px;font-weight:600;color:var(--stone);text-transform:uppercase;letter-spacing:.05em;margin-right:2px}
+.filter-bar select{border:1px solid var(--line);border-radius:6px;padding:7px 10px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--ink);background:var(--paper);outline:none;cursor:pointer}
+.filter-bar select:focus{border-color:var(--leaf)}
+.search-input{flex:1;min-width:180px;border:1px solid var(--line);border-radius:6px;padding:7px 12px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--ink);background:var(--paper);outline:none}
+.search-input:focus{border-color:var(--leaf);background:#fff}
+
+.results-count{font-size:12px;color:var(--stone);margin-bottom:14px}
+.card-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:36px}
+.card{background:var(--white);border:1px solid var(--line);border-radius:var(--radius);padding:20px;transition:border-color .15s}
+.card:hover{border-color:#9BA8A3}
+.card-head{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px}
+.card-name{font-size:16px;font-weight:500;color:var(--ink)}
+.card-location{font-size:12px;color:var(--stone);margin-top:2px}
+.cert-badge{font-size:10px;font-weight:700;padding:3px 8px;border-radius:10px;white-space:nowrap;flex-shrink:0}
+.tags{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.tag{font-size:11px;padding:3px 8px;border-radius:10px;background:var(--paper);border:1px solid var(--line);color:var(--stone)}
+.card-desc{font-size:13px;color:var(--stone);line-height:1.5;margin-bottom:12px}
+.card-footer{display:flex;align-items:center;justify-content:space-between}
+.card-contact{font-size:12px;color:var(--leaf)}
+.card-btn{font-size:12px;padding:6px 14px;border:1px solid var(--leaf);color:var(--leaf);background:transparent;border-radius:6px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s}
+.card-btn:hover{background:var(--leaf);color:#fff}
+
+.add-listing{background:var(--mint);border:1px solid var(--leaf);border-radius:var(--radius);padding:22px 28px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;margin-bottom:36px}
+.al-text h3{font-size:15px;font-weight:500;color:var(--forest);margin-bottom:3px}
+.al-text p{font-size:13px;color:#0F6E56}
+.al-btn{padding:9px 20px;background:var(--forest);color:#fff;border:none;border-radius:7px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
+.al-btn:hover{background:#0a2e20}
+.empty{text-align:center;padding:48px;color:var(--stone);font-size:14px;grid-column:span 2}
+
+footer{background:var(--forest);padding:28px 40px}
+.footer-inner{max-width:1040px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px}
+.footer-links{display:flex;gap:18px}
+.footer-links a{font-size:12px;color:rgba(255,255,255,.4);text-decoration:none}
+.footer-links a:hover{color:rgba(255,255,255,.7)}
+@media(max-width:700px){.card-grid{grid-template-columns:1fr}.cat-tabs{flex-direction:column}.cat-tab{border-right:none;border-bottom:1px solid var(--line)}.cat-tab:last-child{border-bottom:none}.header{padding:16px 20px}.hero-title{font-size:24px}.main{padding:24px 16px}.filter-bar{flex-direction:column;align-items:stretch}}
+</style>
+</head>
+<body>
+<div class="header">
+  <a href="/" class="logo">orb<span>ag</span></a>
+  <div class="nav">
+    <a href="/">Buyer analysis</a>
+    <a href="/boer">Farmer analysis</a>
+    <a href="/kennis">Knowledge</a>
+    <a href="/zaden" class="active">Inputs directory</a>
+  </div>
+</div>
+
+<div class="hero">
+  <div class="hero-eyebrow">Regenerative inputs directory</div>
+  <div class="hero-title">Everything you need<br>to start your transition</div>
+  <div class="hero-sub">Seeds, compost teas, and specialist machinery for regenerative farming — sourced from Dutch and European suppliers, all in one place.</div>
+</div>
+
+<div class="main">
+
+  <div class="cat-tabs">
+    <button class="cat-tab active" onclick="setCategory('seeds',this)">
+      <span class="tab-icon">🌱</span>
+      Seeds &amp; varieties
+      <div class="tab-count" id="count-seeds"></div>
+    </button>
+    <button class="cat-tab" onclick="setCategory('compost',this)">
+      <span class="tab-icon">🧪</span>
+      Compost teas &amp; biology
+      <div class="tab-count" id="count-compost"></div>
+    </button>
+    <button class="cat-tab" onclick="setCategory('machines',this)">
+      <span class="tab-icon">🚜</span>
+      Regenerative machinery
+      <div class="tab-count" id="count-machines"></div>
+    </button>
+  </div>
+
+  <div class="filter-bar">
+    <input type="text" class="search-input" id="searchInput" placeholder="Search suppliers..." oninput="renderCards()"/>
+    <label>Region</label>
+    <select id="regionFilter" onchange="renderCards()">
+      <option value="">All regions</option>
+      <option value="noord">Noord-Nederland</option>
+      <option value="oost">Oost-Nederland</option>
+      <option value="west">West-Nederland</option>
+      <option value="nationaal">Nationaal</option>
+      <option value="internationaal">International</option>
+    </select>
+    <label>Type</label>
+    <select id="typeFilter" onchange="renderCards()">
+      <option value="">All types</option>
+    </select>
+  </div>
+
+  <div class="results-count" id="resultsCount"></div>
+  <div class="card-grid" id="cardGrid"></div>
+
+  <div class="add-listing">
+    <div class="al-text">
+      <h3 id="addTitle">Are you a seed supplier?</h3>
+      <p>List your company for free — reach farmers actively transitioning to regenerative systems across the Netherlands.</p>
+    </div>
+    <button class="al-btn" onclick="alert('Send your company name, location, products, and contact details to info@orbag.online — we will add your listing within 48 hours. Free of charge.')">Add your listing</button>
+  </div>
+
+</div>
+
+<footer>
+  <div class="footer-inner">
+    <a href="/" class="logo" style="font-size:18px">orb<span>ag</span></a>
+    <div class="footer-links">
+      <a href="/">Buyer analysis</a>
+      <a href="/boer">Farmer analysis</a>
+      <a href="/kennis">Knowledge</a>
+      <a href="/zaden">Inputs directory</a>
+    </div>
+    <div style="font-size:11px;color:rgba(255,255,255,.3)">© 2026 Orbag · Noord-Nederland</div>
+  </div>
+</footer>
+
+<script>
+const data = {
+  seeds: [
+    {name:"Agrico",location:"Emmeloord, Flevoland",cert:"regen",certLabel:"PlanetProof",tags:["Aardappelen"],desc:"One of the Netherlands' leading potato breeding and seed companies with a growing range of varieties suited to regenerative systems and reduced input farming.",region:"nationaal",url:"https://www.agrico.nl",contact:"info@agrico.nl"},
+    {name:"Wiersum Plantbreeding",location:"Winschoten, Groningen",cert:"bio",certLabel:"Organic",tags:["Granen","Peulvruchten"],desc:"Specialised plant breeder in Noord-Nederland focusing on organic and low-input varieties of grain and legume crops, including protein peas and winter wheat.",region:"noord",url:"#",contact:"info@wiersum.nl"},
+    {name:"De Bolster",location:"Ansen, Drenthe",cert:"bio",certLabel:"Organic / Demeter",tags:["Groenten","Groenbemesters","Peulvruchten"],desc:"One of the oldest organic seed companies in the Netherlands, specialising in open-pollinated vegetable varieties and cover crop mixes for regenerative rotations.",region:"noord",url:"https://www.debolster.nl",contact:"info@debolster.nl"},
+    {name:"Bingenheimer Saatgut",location:"Germany / NL distribution",cert:"demeter",certLabel:"Demeter",tags:["Granen","Groenten","Peulvruchten"],desc:"German Demeter seed specialist with Dutch distribution. Known for biodynamic grain varieties including spelt, emmer, and heritage wheat.",region:"internationaal",url:"https://www.bingenheimersaatgut.de",contact:"info@bingenheimersaatgut.de"},
+    {name:"Averis Seeds",location:"Valthermond, Drenthe",cert:"regen",certLabel:"PlanetProof",tags:["Aardappelen"],desc:"Potato seed specialist from Drenthe with research focused on blight-resistant and low-input varieties suitable for regenerative and organic systems.",region:"noord",url:"https://www.averis.nl",contact:"info@averis.nl"},
+    {name:"Interseeds",location:"Nationaal",cert:"bio",certLabel:"Organic",tags:["Groenbemesters","Peulvruchten","Granen"],desc:"Specialist in cover crops and green manures for regenerative rotations. Custom mixes for nitrogen fixation, soil structure improvement, and biodiversity.",region:"nationaal",url:"#",contact:"info@interseeds.nl"},
+    {name:"Louis Bolk Instituut",location:"Bunnik, Utrecht",cert:"regen",certLabel:"Research",tags:["Granen","Peulvruchten","Groenten"],desc:"Research institute facilitating access to rare and heritage varieties through farmer networks. Key source for hard-to-find regen varieties.",region:"nationaal",url:"https://www.louisbolk.nl",contact:"info@louisbolk.nl"},
+    {name:"Agrifirm Plant",location:"Nationaal",cert:"regen",certLabel:"PlanetProof",tags:["Granen","Aardappelen","Peulvruchten","Koolzaad"],desc:"Cooperative seed and advisory division of Agrifirm. Broad range with increasing focus on low-input and regen-compatible performance.",region:"nationaal",url:"https://www.agrifirmplant.nl",contact:"info@agrifirmplant.nl"},
+  ],
+  compost: [
+    {name:"EM Agriton",location:"Middenmeer, Noord-Holland",cert:"bio",certLabel:"Organic certified",tags:["Compost tea","EM microbiologie","Bodemactivering"],desc:"Dutch pioneer in Effective Microorganisms (EM) technology for agriculture. Produces EM-based compost activators, fermented plant extracts, and soil biology products for regen farms.",region:"west",url:"https://www.agriton.nl",contact:"info@agriton.nl"},
+    {name:"Soil Capital",location:"Nationaal / Belgium",cert:"regen",certLabel:"Regen advisory",tags:["Bodemgezondheid","Compost","Begeleiding"],desc:"Advisory and input company focused on measurable soil health improvement. Supplies compost biology products alongside soil carbon measurement services.",region:"internationaal",url:"https://www.soilcapital.com",contact:"info@soilcapital.com"},
+    {name:"Van Iperen",location:"Made, Noord-Brabant",cert:"regen",certLabel:"Sustainable",tags:["Biostimulanten","Compost thee","Nutriëntencyclus"],desc:"Dutch crop nutrition specialist with a growing biostimulant and organic fertility range. Supplies liquid compost extracts and soil biology products compatible with regen systems.",region:"west",url:"https://www.vaniperen.com",contact:"info@vaniperen.com"},
+    {name:"Bokashi Nederland",location:"Nationaal",cert:"bio",certLabel:"Organic",tags:["Bokashi","Fermentatie","Bodemactivering"],desc:"Specialist in bokashi fermentation technology for agricultural use. Bokashi is a key regen tool for activating compost and recycling farm organic matter efficiently.",region:"nationaal",url:"#",contact:"info@bokashinederland.nl"},
+    {name:"Rumenco / Rumenic",location:"Oost-Nederland",cert:"bio",certLabel:"Organic",tags:["Drijfmest activering","Biologische additieven","Composteer"],desc:"Produces biological additives for slurry and compost activation, reducing ammonia emissions while improving nutrient availability — key for regen nitrogen management.",region:"oost",url:"#",contact:"info@rumenco.nl"},
+    {name:"Culterra",location:"Wageningen, Gelderland",cert:"regen",certLabel:"WUR partner",tags:["Mycorrhiza","Bodemschimmels","Wortelstimulatie"],desc:"WUR spin-off specialising in mycorrhizal inoculants and beneficial soil fungi products for arable farming. Proven yield benefits in low-input regen systems.",region:"oost",url:"#",contact:"info@culterra.nl"},
+  ],
+  machines: [
+    {name:"Väderstad (NL dealer)",location:"Nationaal",cert:"regen",certLabel:"Precision ag",tags:["Rotoreg","Strip-till","Zaaimachines"],desc:"Swedish precision tillage and seeding equipment with Dutch dealership network. The Rotoreg rotary hoe and strip-till equipment are widely used in Dutch regen systems for mechanical weeding without chemical inputs.",region:"nationaal",url:"https://www.vaderstad.com",contact:"info@vaderstad.nl"},
+    {name:"Einböck",location:"Austria / NL dealers",cert:"regen",certLabel:"Mechanical weeding",tags:["Rotowieders","Wiedeg","Hakken"],desc:"Austrian specialist in mechanical weeding equipment. The Aerostar rotary hoe and finger weeders are used by Dutch regen and organic arable farmers to replace herbicides in grain and legume crops.",region:"internationaal",url:"https://www.einboeck.at",contact:"info@einboeck.at"},
+    {name:"Treffler",location:"Germany / NL dealers",cert:"regen",certLabel:"Precision tillage",tags:["Egge","Strip-till","Bodembewerking"],desc:"German manufacturer of precision tillage tools including the TS Treffler strip-till system, popular for minimal soil disturbance in regen arable systems.",region:"internationaal",url:"https://www.treffler.de",contact:"info@treffler.de"},
+    {name:"Holaras",location:"Ommen, Overijssel",cert:"regen",certLabel:"Dutch manufacturer",tags:["Wiedeg","Aanaarders","Ruggenfrezen"],desc:"Dutch manufacturer of inter-row cultivation equipment. The Holaras finger weeder and straw harrow are widely used in Dutch regen arable and vegetable production for mechanical weed control.",region:"oost",url:"https://www.holaras.nl",contact:"info@holaras.nl"},
+    {name:"Lemken (NL dealer)",location:"Nationaal",cert:"regen",certLabel:"Conservation tillage",tags:["Ploeg","Cultivator","Zaaimachine"],desc:"German arable equipment manufacturer with strong Dutch presence. Conservation tillage range including shallow cultivators and combination seed drills used in regen transition farms.",region:"nationaal",url:"https://www.lemken.com",contact:"info@lemken.nl"},
+    {name:"Kverneland (NL)",location:"Nationaal",cert:"regen",certLabel:"Precision ag",tags:["Strip-till","Zaaimachines","Bemesting"],desc:"Norwegian manufacturer with Dutch headquarters. Isobus precision application systems and strip-till equipment enable targeted input reduction in regen farming systems.",region:"nationaal",url:"https://www.kverneland.com",contact:"info@kverneland.nl"},
+  ]
+};
+
+const certColors = {
+  bio:{bg:'#E6F1FB',color:'#0C447C'},
+  regen:{bg:'#E1F5EE',color:'#085041'},
+  demeter:{bg:'#FAEEDA',color:'#412402'},
+};
+
+let currentCategory = 'seeds';
+
+function setCategory(cat, el) {
+  currentCategory = cat;
+  document.querySelectorAll('.cat-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  const titles = {seeds:'Are you a seed supplier?', compost:'Do you supply compost teas or biology products?', machines:'Do you sell regenerative machinery?'};
+  document.getElementById('addTitle').textContent = titles[cat];
+  updateTypeFilter();
+  renderCards();
+}
+
+function updateTypeFilter() {
+  const tagSets = {
+    seeds:['Aardappelen','Granen','Peulvruchten','Groenten','Groenbemesters'],
+    compost:['Compost tea','EM microbiologie','Biostimulanten','Bokashi','Mycorrhiza'],
+    machines:['Rotowieders','Strip-till','Wiedeg','Zaaimachines','Hakken']
+  };
+  const sel = document.getElementById('typeFilter');
+  sel.innerHTML = '<option value="">All types</option>' +
+    (tagSets[currentCategory]||[]).map(t=>`<option value="${t}">${t}</option>`).join('');
+}
+
+function renderCards() {
+  const search = document.getElementById('searchInput').value.toLowerCase();
+  const region = document.getElementById('regionFilter').value;
+  const type   = document.getElementById('typeFilter').value;
+  const items  = data[currentCategory] || [];
+
+  // Update counts
+  Object.keys(data).forEach(cat => {
+    const el = document.getElementById('count-'+cat);
+    if(el) el.textContent = data[cat].length + ' suppliers';
+  });
+
+  const filtered = items.filter(s => {
+    if(search && !s.name.toLowerCase().includes(search) && !s.tags.join(' ').toLowerCase().includes(search) && !s.desc.toLowerCase().includes(search)) return false;
+    if(region && s.region !== region) return false;
+    if(type && !s.tags.includes(type)) return false;
+    return true;
+  });
+
+  document.getElementById('resultsCount').textContent = `${filtered.length} supplier${filtered.length!==1?'s':''} found`;
+
+  const grid = document.getElementById('cardGrid');
+  if(!filtered.length) {
+    grid.innerHTML = '<div class="empty">No suppliers match your filters.<br>Try broadening your search or <a href="mailto:info@orbag.online" style="color:var(--leaf)">suggest a supplier</a>.</div>';
+    return;
+  }
+
+  grid.innerHTML = filtered.map(s => {
+    const cc = certColors[s.cert] || {bg:'#F1EFE8',color:'#5F5E5A'};
+    return `<div class="card">
+      <div class="card-head">
+        <div>
+          <div class="card-name">${s.name}</div>
+          <div class="card-location">${s.location}</div>
+        </div>
+        <span class="cert-badge" style="background:${cc.bg};color:${cc.color}">${s.certLabel}</span>
+      </div>
+      <div class="tags">${s.tags.map(t=>`<span class="tag">${t}</span>`).join('')}</div>
+      <div class="card-desc">${s.desc}</div>
+      <div class="card-footer">
+        <span class="card-contact">${s.contact}</span>
+        <button class="card-btn" onclick="window.open('${s.url}','_blank')">${s.url==='#'?'Contact via Orbag':'Visit website'}</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+updateTypeFilter();
+renderCards();
+</script>
+</body>
+</html>
