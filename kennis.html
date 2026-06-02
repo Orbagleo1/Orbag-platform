@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Orbag · Regenerative Farming Knowledge</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--forest:#0D3D2B;--leaf:#1D9E75;--mint:#E1F5EE;--ink:#0F1A14;--stone:#5A6862;--paper:#F7F5F0;--line:#D8D5CE;--white:#FFFFFF;--radius:10px;--amber:#BA7517;--amber-l:#FAEEDA}
+body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);font-size:14px;line-height:1.6}
+.header{background:var(--forest);padding:18px 40px;display:flex;align-items:center;justify-content:space-between}
+.logo{font-family:'DM Serif Display',serif;font-size:24px;color:#fff;text-decoration:none}
+.logo span{color:var(--leaf)}
+.nav{display:flex;gap:8px;align-items:center}
+.nav a{font-size:12px;color:rgba(255,255,255,.5);text-decoration:none;padding:6px 12px;border:0.5px solid rgba(255,255,255,.15);border-radius:6px;transition:all .15s}
+.nav a:hover,.nav a.active{color:#fff;border-color:rgba(255,255,255,.4)}
+.nav a.active{background:rgba(255,255,255,.08)}
+.hero{background:var(--forest);padding:60px 40px;text-align:center}
+.hero-eyebrow{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--leaf);margin-bottom:12px}
+.hero-title{font-family:'DM Serif Display',serif;font-size:40px;color:#fff;margin-bottom:16px;line-height:1.15}
+.hero-sub{font-size:16px;color:rgba(255,255,255,.6);max-width:560px;margin:0 auto 32px}
+.hero-cta{display:inline-flex;align-items:center;gap:8px;background:var(--leaf);color:#fff;padding:12px 24px;border-radius:8px;font-size:14px;font-weight:600;text-decoration:none;transition:background .15s}
+.hero-cta:hover{background:#178c64}
+.main{max-width:1040px;margin:0 auto;padding:48px 24px}
+.section-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:24px}
+.section-title{font-family:'DM Serif Display',serif;font-size:24px;color:var(--forest)}
+.see-all{font-size:13px;color:var(--leaf);text-decoration:none}
+.see-all:hover{text-decoration:underline}
+.tag{display:inline-block;font-size:11px;font-weight:600;padding:3px 9px;border-radius:10px;text-transform:uppercase;letter-spacing:.04em}
+.tag-soil{background:#EAF3DE;color:#3B6D11}
+.tag-crop{background:var(--mint);color:#085041}
+.tag-policy{background:#E6F1FB;color:#0C447C}
+.tag-economics{background:var(--amber-l);color:#412402}
+.tag-carbon{background:#F1EFE8;color:#5F5E5A}
+.articles-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-bottom:48px}
+.article-card{background:var(--white);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;transition:border-color .15s;cursor:pointer}
+.article-card:hover{border-color:#9BA8A3}
+.article-img{height:140px;display:flex;align-items:center;justify-content:center;font-size:40px}
+.article-body{padding:18px}
+.article-meta{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.article-date{font-size:11px;color:var(--stone)}
+.article-title{font-size:15px;font-weight:500;color:var(--ink);margin-bottom:6px;line-height:1.35}
+.article-excerpt{font-size:13px;color:var(--stone);line-height:1.55}
+.article-card.featured{grid-column:span 2}
+.article-card.featured .article-img{height:200px;font-size:60px}
+.article-card.featured .article-title{font-family:'DM Serif Display',serif;font-size:20px}
+.coming-soon-strip{background:var(--mint);border:1px solid var(--leaf);border-radius:var(--radius);padding:20px 28px;display:flex;align-items:center;justify-content:space-between;margin-bottom:48px;flex-wrap:wrap;gap:16px}
+.cs-text h3{font-size:16px;font-weight:500;color:var(--forest);margin-bottom:4px}
+.cs-text p{font-size:13px;color:#0F6E56}
+.email-form{display:flex;gap:8px}
+.email-form input{padding:9px 14px;border:1px solid var(--leaf);border-radius:7px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--ink);background:#fff;outline:none;width:240px}
+.email-form button{padding:9px 18px;background:var(--forest);color:#fff;border:none;border-radius:7px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
+.email-form button:hover{background:#0a2e20}
+.calc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:48px}
+.calc-card{background:var(--white);border:1px solid var(--line);border-radius:var(--radius);padding:20px;cursor:pointer;transition:border-color .15s}
+.calc-card:hover{border-color:var(--leaf)}
+.calc-icon{font-size:28px;margin-bottom:10px}
+.calc-title{font-size:15px;font-weight:500;color:var(--ink);margin-bottom:4px}
+.calc-sub{font-size:12px;color:var(--stone)}
+.calc-badge{margin-top:10px;font-size:11px;font-weight:600;color:var(--leaf)}
+.topic-pills{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:48px}
+.topic-pill{padding:8px 16px;border:1px solid var(--line);border-radius:20px;font-size:13px;color:var(--stone);cursor:pointer;transition:all .15s}
+.topic-pill:hover,.topic-pill.active{background:var(--mint);border-color:var(--leaf);color:var(--forest)}
+footer{background:var(--forest);padding:32px 40px;margin-top:40px}
+.footer-inner{max-width:1040px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px}
+.footer-links{display:flex;gap:20px}
+.footer-links a{font-size:12px;color:rgba(255,255,255,.4);text-decoration:none}
+.footer-links a:hover{color:rgba(255,255,255,.7)}
+@media(max-width:700px){.articles-grid{grid-template-columns:1fr}.article-card.featured{grid-column:span 1}.calc-grid{grid-template-columns:1fr 1fr}.hero-title{font-size:28px}.main{padding:32px 16px}.header{padding:16px 20px}}
+</style>
+</head>
+<body>
+<div class="header">
+  <a href="/" class="logo">orb<span>ag</span></a>
+  <div class="nav">
+    <a href="/">Buyer analysis</a>
+    <a href="/boer">Farmer analysis</a>
+    <a href="/kennis" class="active">Knowledge</a>
+    <a href="/zaden">Seed directory</a>
+  </div>
+</div>
+
+<div class="hero">
+  <div class="hero-eyebrow">Regenerative farming knowledge base</div>
+  <div class="hero-title">The economics of<br>regenerative agriculture</div>
+  <div class="hero-sub">Practical guides, crop calculators, and policy updates for Dutch farmers making the transition.</div>
+  <a href="/boer" class="hero-cta">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+    Calculate your farm businesscase
+  </a>
+</div>
+
+<div class="main">
+
+  <!-- Topic filter -->
+  <div class="topic-pills" id="topicPills">
+    <div class="topic-pill active" onclick="filterTopic('all',this)">All topics</div>
+    <div class="topic-pill" onclick="filterTopic('soil',this)">Soil health</div>
+    <div class="topic-pill" onclick="filterTopic('crop',this)">Crop guides</div>
+    <div class="topic-pill" onclick="filterTopic('economics',this)">Farm economics</div>
+    <div class="topic-pill" onclick="filterTopic('policy',this)">GLB &amp; policy</div>
+    <div class="topic-pill" onclick="filterTopic('carbon',this)">Carbon &amp; ESG</div>
+  </div>
+
+  <!-- Featured + articles -->
+  <div class="section-head">
+    <div class="section-title">Latest guides</div>
+  </div>
+  <div class="articles-grid" id="articlesGrid">
+
+    <div class="article-card featured" data-topic="economics">
+      <div class="article-img" style="background:#E1F5EE">🌾</div>
+      <div class="article-body">
+        <div class="article-meta">
+          <span class="tag tag-economics">Farm economics</span>
+          <span class="article-date">June 2026</span>
+        </div>
+        <div class="article-title">The complete financial case for regenerative transition in Noord-Nederland</div>
+        <div class="article-excerpt">A detailed breakdown of input cost reductions, premium revenue potential, and transition timelines for clay soil farms in Groningen, Friesland, and Drenthe — using official KWIN-AGV 2024 benchmarks.</div>
+      </div>
+    </div>
+
+    <div class="article-card" data-topic="soil">
+      <div class="article-img" style="background:#EAF3DE">🪱</div>
+      <div class="article-body">
+        <div class="article-meta">
+          <span class="tag tag-soil">Soil health</span>
+          <span class="article-date">May 2026</span>
+        </div>
+        <div class="article-title">Soil organic matter: what it costs, what it earns</div>
+        <div class="article-excerpt">Every 1% increase in soil organic matter reduces fertiliser need by 15-20kg N/ha. Here's how to calculate the financial impact for your farm.</div>
+      </div>
+    </div>
+
+    <div class="article-card" data-topic="crop">
+      <div class="article-img" style="background:var(--mint)">🫘</div>
+      <div class="article-body">
+        <div class="article-meta">
+          <span class="tag tag-crop">Crop guide</span>
+          <span class="article-date">May 2026</span>
+        </div>
+        <div class="article-title">Lentils and peas in Noord-Nederland: a practical rotation guide</div>
+        <div class="article-excerpt">Protein crops are the fastest-growing regen category for Dutch buyers. Yield expectations, market prices, and which varieties work on clay versus sandy soil.</div>
+      </div>
+    </div>
+
+    <div class="article-card" data-topic="policy">
+      <div class="article-img" style="background:#E6F1FB">📋</div>
+      <div class="article-body">
+        <div class="article-meta">
+          <span class="tag tag-policy">GLB &amp; policy</span>
+          <span class="article-date">April 2026</span>
+        </div>
+        <div class="article-title">GLB 2023-2027: which eco-schemes pay most for regen practices?</div>
+        <div class="article-excerpt">The new Common Agricultural Policy rewards farmers for biodiversity, soil health, and reduced inputs. A plain-language breakdown of what you can claim.</div>
+      </div>
+    </div>
+
+    <div class="article-card" data-topic="carbon">
+      <div class="article-img" style="background:#F1EFE8">🌍</div>
+      <div class="article-body">
+        <div class="article-meta">
+          <span class="tag tag-carbon">Carbon &amp; ESG</span>
+          <span class="article-date">April 2026</span>
+        </div>
+        <div class="article-title">Carbon credits for Dutch arable farmers: what's realistic in 2026?</div>
+        <div class="article-excerpt">Market prices, certification requirements, and honest projections. Most farms can expect €30-80/ha — here's what determines where you land in that range.</div>
+      </div>
+    </div>
+
+    <div class="article-card" data-topic="economics">
+      <div class="article-img" style="background:var(--amber-l)">💰</div>
+      <div class="article-body">
+        <div class="article-meta">
+          <span class="tag tag-economics">Farm economics</span>
+          <span class="article-date">March 2026</span>
+        </div>
+        <div class="article-title">On the Way to PlanetProof: is the certification worth the cost?</div>
+        <div class="article-excerpt">Certification costs €20-50/ha per year. Premium buyers pay 10-20% above conventional. A break-even analysis across five crop types.</div>
+      </div>
+    </div>
+
+    <div class="article-card" data-topic="crop">
+      <div class="article-img" style="background:#EAF3DE">🌿</div>
+      <div class="article-body">
+        <div class="article-meta">
+          <span class="tag tag-crop">Crop guide</span>
+          <span class="article-date">March 2026</span>
+        </div>
+        <div class="article-title">Winter wheat transition guide: from conventional to regenerative in 3 seasons</div>
+        <div class="article-excerpt">Step-by-step rotation design, variety selection for regen systems, and what to expect from yield and income in each transition year.</div>
+      </div>
+    </div>
+
+    <div class="article-card" data-topic="soil">
+      <div class="article-img" style="background:#E1F5EE">🔬</div>
+      <div class="article-body">
+        <div class="article-meta">
+          <span class="tag tag-soil">Soil health</span>
+          <span class="article-date">February 2026</span>
+        </div>
+        <div class="article-title">Reading your soil analysis: what the numbers mean for regen transition</div>
+        <div class="article-excerpt">pH, CEC, organic matter, microbial activity — which metrics matter most and what targets to set for a profitable regen system.</div>
+      </div>
+    </div>
+
+    <div class="article-card" data-topic="policy">
+      <div class="article-img" style="background:#E6F1FB">🏛️</div>
+      <div class="article-body">
+        <div class="article-meta">
+          <span class="tag tag-policy">GLB &amp; policy</span>
+          <span class="article-date">February 2026</span>
+        </div>
+        <div class="article-title">CSRD for food buyers: why your supply chain data matters now</div>
+        <div class="article-excerpt">From 2025, large food companies must report scope 3 emissions. Regen-certified farmers with traceable data will be preferred suppliers.</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Calculators -->
+  <div class="section-head">
+    <div class="section-title">Crop calculators</div>
+  </div>
+  <div class="calc-grid">
+    <div class="calc-card" onclick="window.location.href='/boer'">
+      <div class="calc-icon">🌾</div>
+      <div class="calc-title">Farm transition calculator</div>
+      <div class="calc-sub">Full farm P&amp;L — current vs regenerative income across your whole rotation</div>
+      <div class="calc-badge">→ Open calculator</div>
+    </div>
+    <div class="calc-card" onclick="alert('Coming soon — subscribe below for early access')">
+      <div class="calc-icon">🧮</div>
+      <div class="calc-title">Input cost reduction model</div>
+      <div class="calc-sub">Calculate fertiliser and crop protection savings per crop per hectare</div>
+      <div class="calc-badge" style="color:var(--stone)">Coming soon</div>
+    </div>
+    <div class="calc-card" onclick="alert('Coming soon — subscribe below for early access')">
+      <div class="calc-icon">🌍</div>
+      <div class="calc-title">Carbon credit estimator</div>
+      <div class="calc-sub">Estimate your annual carbon sequestration potential and market value</div>
+      <div class="calc-badge" style="color:var(--stone)">Coming soon</div>
+    </div>
+  </div>
+
+  <!-- Email capture -->
+  <div class="coming-soon-strip">
+    <div class="cs-text">
+      <h3>New guides every month</h3>
+      <p>Practical, number-based content for Dutch regen farmers and their advisors. No marketing.</p>
+    </div>
+    <div class="email-form">
+      <input type="email" id="emailInput" placeholder="your@email.com"/>
+      <button onclick="subscribe()">Get updates</button>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  <div class="footer-inner">
+    <a href="/" class="logo" style="font-size:18px">orb<span>ag</span></a>
+    <div class="footer-links">
+      <a href="/">Buyer analysis</a>
+      <a href="/boer">Farmer analysis</a>
+      <a href="/kennis">Knowledge</a>
+      <a href="/zaden">Seed directory</a>
+    </div>
+    <div style="font-size:11px;color:rgba(255,255,255,.3)">© 2026 Orbag · Noord-Nederland</div>
+  </div>
+</footer>
+
+<script>
+function filterTopic(topic, el) {
+  document.querySelectorAll('.topic-pill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('.article-card').forEach(card => {
+    if(topic === 'all' || card.dataset.topic === topic) {
+      card.style.display = '';
+    } else {
+      card.style.display = 'none';
+    }
+  });
+}
+
+function subscribe() {
+  const email = document.getElementById('emailInput').value;
+  if(!email || !email.includes('@')) { alert('Please enter a valid email address.'); return; }
+  document.querySelector('.email-form button').textContent = '✓ Subscribed';
+  document.querySelector('.email-form button').style.background = '#1D9E75';
+  document.getElementById('emailInput').value = '';
+}
+</script>
+</body>
+</html>
