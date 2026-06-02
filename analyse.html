@@ -1,0 +1,1003 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Orbag · Buyer Businesscase Generator</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --forest: #0D3D2B;
+  --leaf:   #1D9E75;
+  --mint:   #E1F5EE;
+  --ink:    #0F1A14;
+  --stone:  #5A6862;
+  --paper:  #F7F5F0;
+  --amber:  #BA7517;
+  --amber-l:#FAEEDA;
+  --red:    #A32D2D;
+  --red-l:  #FCEBEB;
+  --line:   #D8D5CE;
+  --white:  #FFFFFF;
+  --radius: 10px;
+}
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--paper);
+  color: var(--ink);
+  min-height: 100vh;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* ── HEADER ── */
+.header {
+  background: var(--forest);
+  padding: 18px 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.logo { font-family:'DM Serif Display',serif; font-size:24px; color:#fff; letter-spacing:0.5px; }
+.logo span { color: var(--leaf); }
+.header-right { font-size:11px; color:rgba(255,255,255,.4); }
+.nav-links { display:flex; gap:8px; align-items:center; }
+.nav-links a { font-size:12px; color:rgba(255,255,255,.5); text-decoration:none; padding:6px 12px; border:0.5px solid rgba(255,255,255,.15); border-radius:6px; transition:all .15s; }
+.nav-links a:hover { color:#fff; border-color:rgba(255,255,255,.4); }
+.nav-links a.active { color:#fff; border-color:rgba(255,255,255,.4); background:rgba(255,255,255,.08); }
+
+/* ── API KEY SETUP ── */
+
+
+/* ── PROGRESS ── */
+.progress-bar {
+  background: #0a2e20;
+  padding: 12px 40px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.step-dot { display:flex; align-items:center; gap:6px; font-size:11px; color:rgba(255,255,255,.35); font-weight:500; }
+.step-dot.active { color: var(--leaf); }
+.step-dot.done { color:rgba(255,255,255,.55); }
+.dot { width:7px; height:7px; border-radius:50%; background:rgba(255,255,255,.15); flex-shrink:0; }
+.step-dot.active .dot { background:var(--leaf); }
+.step-dot.done .dot { background:rgba(255,255,255,.4); }
+.step-line { flex:1; height:1px; background:rgba(255,255,255,.08); }
+
+/* ── MAIN ── */
+.main { max-width:880px; margin:0 auto; padding:36px 24px; }
+
+/* ── CARDS ── */
+.card {
+  background:var(--white);
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  padding:28px 32px;
+  margin-bottom:16px;
+}
+.card-title { font-family:'DM Serif Display',serif; font-size:19px; color:var(--forest); margin-bottom:3px; }
+.card-sub { font-size:12px; color:var(--stone); margin-bottom:22px; }
+
+/* ── FORM ── */
+.form-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+.form-grid.full { grid-template-columns:1fr; }
+.field { display:flex; flex-direction:column; gap:5px; }
+.field label { font-size:11px; font-weight:600; color:var(--stone); text-transform:uppercase; letter-spacing:.05em; }
+.field input,.field select,.field textarea {
+  border:1px solid var(--line);
+  border-radius:7px;
+  padding:10px 13px;
+  font-family:'DM Sans',sans-serif;
+  font-size:14px;
+  color:var(--ink);
+  background:var(--paper);
+  outline:none;
+  transition:border-color .15s, background .15s;
+}
+.field input:focus,.field select:focus,.field textarea:focus {
+  border-color:var(--leaf);
+  background:#fff;
+}
+.field textarea { resize:vertical; min-height:82px; }
+.field-hint { font-size:11px; color:#9BA8A3; margin-top:2px; }
+
+/* ── CHECKS ── */
+.check-group { display:flex; flex-wrap:wrap; gap:8px; margin-top:2px; }
+.check-item {
+  display:flex; align-items:center; gap:6px;
+  padding:6px 12px;
+  border:1px solid var(--line);
+  border-radius:20px;
+  cursor:pointer;
+  font-size:13px;
+  transition:all .15s;
+  user-select:none;
+}
+.check-item:hover { border-color:var(--leaf); }
+.check-item.checked { background:var(--mint); border-color:var(--leaf); color:var(--forest); font-weight:500; }
+.check-item input { display:none; }
+
+/* ── RANGE ── */
+.range-wrap { display:flex; align-items:center; gap:12px; margin-top:4px; }
+.range-wrap input[type=range] { flex:1; accent-color:var(--leaf); cursor:pointer; }
+.range-val { font-weight:600; color:var(--forest); min-width:50px; text-align:right; }
+
+/* ── BUTTONS ── */
+.btn-primary {
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  background:var(--forest); color:#fff;
+  border:none; border-radius:8px;
+  padding:14px 28px;
+  font-family:'DM Sans',sans-serif; font-size:15px; font-weight:600;
+  cursor:pointer; transition:background .15s, transform .1s;
+  width:100%; margin-top:8px;
+}
+.btn-primary:hover { background:#0a2e20; }
+.btn-primary:active { transform:scale(.99); }
+.btn-primary:disabled { background:#9BA8A3; cursor:not-allowed; }
+
+.btn-outline {
+  border:1px solid var(--forest); color:var(--forest);
+  background:transparent; padding:9px 20px;
+  border-radius:7px; font-family:'DM Sans',sans-serif;
+  font-size:13px; font-weight:600; cursor:pointer;
+  transition:all .15s;
+}
+.btn-outline:hover { background:var(--forest); color:#fff; }
+
+/* ── LOADING ── */
+.loading { display:none; text-align:center; padding:60px 0; }
+.loading.show { display:block; }
+.spinner {
+  width:44px; height:44px;
+  border:3px solid var(--mint);
+  border-top-color:var(--leaf);
+  border-radius:50%;
+  margin:0 auto 20px;
+  animation:spin 1s linear infinite;
+}
+@keyframes spin { to { transform:rotate(360deg); } }
+.loading-title { font-family:'DM Serif Display',serif; font-size:20px; color:var(--forest); margin-bottom:16px; }
+.loading-step { font-size:13px; color:var(--stone); padding:3px 0; transition:color .3s; }
+.loading-step.active { color:var(--leaf); font-weight:600; }
+.loading-step.done { color:#B4B2A9; }
+
+/* ── ERROR ── */
+.error-box {
+  background:var(--red-l); border:1px solid var(--red);
+  border-radius:8px; padding:14px 18px;
+  color:var(--red); font-size:13px;
+  display:none; margin-bottom:16px;
+}
+.error-box.show { display:block; }
+
+/* ── REPORT ── */
+.report { display:none; }
+.report.show { display:block; }
+
+.report-header {
+  background:var(--forest);
+  border-radius:var(--radius) var(--radius) 0 0;
+  padding:28px 32px;
+  color:#fff;
+}
+.report-eyebrow { font-size:11px; color:var(--leaf); font-weight:700; letter-spacing:.1em; text-transform:uppercase; margin-bottom:8px; }
+.report-title { font-family:'DM Serif Display',serif; font-size:28px; margin-bottom:4px; line-height:1.2; }
+.report-meta { font-size:12px; color:rgba(255,255,255,.45); margin-top:6px; }
+
+.report-body {
+  background:var(--white);
+  border:1px solid var(--line);
+  border-top:none;
+  border-radius:0 0 var(--radius) var(--radius);
+  padding:32px;
+}
+
+.verdict-bar {
+  display:flex; align-items:flex-start; gap:14px;
+  padding:16px 20px; border-radius:8px;
+  margin-bottom:24px; font-size:14px;
+}
+.verdict-go { background:var(--mint); border:1px solid var(--leaf); }
+.verdict-no { background:var(--red-l); border:1px solid var(--red); }
+.verdict-icon { font-size:22px; flex-shrink:0; margin-top:1px; }
+.verdict-label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; margin-bottom:3px; }
+.verdict-go .verdict-label { color:var(--forest); }
+.verdict-no .verdict-label { color:var(--red); }
+.verdict-text { font-size:14px; color:var(--ink); }
+
+.section { margin-bottom:28px; }
+.section-title {
+  font-size:11px; font-weight:700; text-transform:uppercase;
+  letter-spacing:.08em; color:var(--stone);
+  margin-bottom:12px; padding-bottom:8px;
+  border-bottom:1px solid var(--line);
+}
+
+.kpi-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+.kpi-card {
+  background:var(--paper); border:1px solid var(--line);
+  border-radius:8px; padding:14px 16px;
+}
+.kpi-label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--stone); margin-bottom:4px; }
+.kpi-val { font-family:'DM Serif Display',serif; font-size:22px; color:var(--forest); line-height:1.1; }
+.kpi-sub { font-size:11px; color:var(--stone); margin-top:3px; }
+
+.prose { font-size:14px; line-height:1.75; color:#2A3530; }
+.prose p { margin-bottom:0; }
+
+.risk-row {
+  display:flex; align-items:center; gap:10px;
+  padding:9px 0; border-bottom:1px solid var(--line);
+  font-size:13px;
+}
+.risk-row:last-child { border-bottom:none; }
+.risk-badge {
+  font-size:10px; font-weight:700; padding:2px 8px;
+  border-radius:10px; text-transform:uppercase;
+  letter-spacing:.04em; min-width:46px; text-align:center; flex-shrink:0;
+}
+.risk-low { background:#EAF3DE; color:#3B6D11; }
+.risk-med { background:var(--amber-l); color:var(--amber); }
+.risk-hi  { background:var(--red-l); color:var(--red); }
+.risk-label { flex:1; font-weight:500; }
+.risk-note { color:var(--stone); font-size:12px; text-align:right; }
+
+.scenario-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+.scenario { padding:16px; border-radius:8px; border:1px solid var(--line); text-align:center; }
+.sc-label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; margin-bottom:8px; }
+.sc-val { font-family:'DM Serif Display',serif; font-size:22px; margin-bottom:2px; }
+.sc-price { font-size:13px; font-weight:600; margin-bottom:6px; }
+.sc-note { font-size:11px; color:var(--stone); font-style:italic; line-height:1.4; }
+.sc-opt { background:var(--mint); border-color:var(--leaf); }
+.sc-opt .sc-label,.sc-opt .sc-val,.sc-opt .sc-price { color:var(--forest); }
+.sc-base { background:var(--paper); }
+.sc-base .sc-label { color:var(--stone); }
+.sc-base .sc-val,.sc-base .sc-price { color:var(--ink); }
+.sc-pes { background:var(--amber-l); border-color:var(--amber); }
+.sc-pes .sc-label,.sc-pes .sc-val,.sc-pes .sc-price { color:var(--amber); }
+
+.action-list { list-style:none; padding:0; }
+.action-list li {
+  display:flex; gap:10px; align-items:flex-start;
+  padding:9px 0; border-bottom:1px solid var(--line); font-size:13px;
+}
+.action-list li:last-child { border-bottom:none; }
+.action-num {
+  width:22px; height:22px; border-radius:50%;
+  background:var(--forest); color:#fff;
+  font-size:10px; font-weight:700;
+  display:flex; align-items:center; justify-content:center;
+  flex-shrink:0; margin-top:1px;
+}
+
+.orbag-note {
+  background:var(--mint); border:1px solid var(--leaf);
+  border-radius:8px; padding:14px 18px; margin-top:6px;
+}
+.orbag-note-label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--forest); margin-bottom:4px; }
+.orbag-note-text { font-size:13px; color:var(--forest); }
+
+.report-footer {
+  margin-top:28px; padding-top:20px;
+  border-top:1px solid var(--line);
+  display:flex; gap:10px; flex-wrap:wrap;
+  align-items:center; justify-content:space-between;
+}
+.footer-note { font-size:11px; color:var(--stone); font-style:italic; max-width:500px; line-height:1.5; }
+
+@media(max-width:600px) {
+  .form-grid { grid-template-columns:1fr; }
+  .kpi-grid { grid-template-columns:1fr 1fr; }
+  .scenario-grid { grid-template-columns:1fr; }
+  .main { padding:20px 16px; }
+  .card { padding:20px; }
+  .header { padding:16px 20px; }
+}
+
+@media print {
+  .header,.progress-bar,.api-setup,.report-footer,.btn-primary { display:none !important; }
+  .report { display:block !important; }
+  body { background:white; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="logo">orb<span>ag</span></div>
+  </div>
+  <div class="nav-links">
+    <a href="/boer">Farmer analysis</a>
+    <a href="/kennis">Knowledge</a>
+    <a href="/zaden">Inputs directory</a>
+    <a href="/" class="active">Buyer analysis</a>
+  </div>
+</div>
+
+
+
+<div class="progress-bar">
+  <div class="step-dot active" id="pd1"><div class="dot"></div> 1. Company profile</div>
+  <div class="step-line"></div>
+  <div class="step-dot" id="pd2"><div class="dot"></div> 2. Supply requirements</div>
+  <div class="step-line"></div>
+  <div class="step-dot" id="pd3"><div class="dot"></div> 3. Businesscase report</div>
+</div>
+
+<div class="main">
+
+  <div id="errorBox" class="error-box"></div>
+
+  <!-- ── FORM ── -->
+  <div id="formView">
+
+    <div class="card">
+      <div class="card-title">Your company</div>
+      <div class="card-sub">We use this to contextualise the supply risk and pricing analysis for your sector.</div>
+      <div class="form-grid">
+        <div class="field">
+          <label>Company name</label>
+          <input type="text" id="company" placeholder="e.g. Bonduelle Netherlands" value="Bonduelle Netherlands"/>
+        </div>
+        <div class="field">
+          <label>Sector</label>
+          <select id="sector">
+            <option value="food_processor">Food processor</option>
+            <option value="retailer">Retailer / supermarket</option>
+            <option value="catering">Catering / foodservice</option>
+            <option value="wholesaler">Wholesaler</option>
+            <option value="exporter">Exporter</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Country of operation</label>
+          <input type="text" id="country" placeholder="Netherlands" value="Netherlands"/>
+        </div>
+        <div class="field">
+          <label>Annual procurement budget (€)</label>
+          <input type="number" id="budget" placeholder="5000000" value="5000000"/>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Supply requirements</div>
+      <div class="card-sub">Be as specific as possible — the AI uses this to calculate feasibility and price range.</div>
+      <div class="form-grid">
+        <div class="field">
+          <label>Target crop</label>
+          <select id="crop">
+            <option value="green_beans">Green beans (sperziebonen)</option>
+            <option value="wheat">Wheat (tarwe)</option>
+            <option value="potatoes">Potatoes (aardappelen)</option>
+            <option value="onions">Onions (uien)</option>
+            <option value="lentils">Lentils (linzen)</option>
+            <option value="oats">Oats (haver)</option>
+            <option value="peas">Peas (erwten)</option>
+            <option value="carrots">Carrots (wortelen)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Required volume (tonnes / year)</label>
+          <input type="number" id="volume" placeholder="500" value="500"/>
+        </div>
+        <div class="field">
+          <label>Preferred source region</label>
+          <select id="region">
+            <option value="noord_nederland">Noord-Nederland (Groningen, Friesland, Drenthe)</option>
+            <option value="west_nederland">West-Nederland (Zuid-Holland, Zeeland)</option>
+            <option value="oost_nederland">Oost-Nederland (Gelderland, Overijssel)</option>
+            <option value="portugal">Portugal (Alentejo)</option>
+            <option value="morocco">Morocco</option>
+            <option value="denmark">Denmark</option>
+            <option value="no_preference">No regional preference</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Contract type</label>
+          <select id="contract">
+            <option value="season">Full season contract (12 months)</option>
+            <option value="spot">Spot purchasing</option>
+            <option value="multi_year">Multi-year framework (2–3 yr)</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="margin-top:18px">
+        <div class="field">
+          <label>Quality &amp; certification requirements</label>
+          <div class="check-group" id="certChecks">
+            <label class="check-item checked"><input type="checkbox" value="GlobalGAP" checked>GlobalGAP</label>
+            <label class="check-item checked"><input type="checkbox" value="Organic" checked>Organic certified</label>
+            <label class="check-item"><input type="checkbox" value="Demeter">Demeter</label>
+            <label class="check-item"><input type="checkbox" value="Rainforest">Rainforest Alliance</label>
+            <label class="check-item checked"><input type="checkbox" value="Regen">Regen certified</label>
+            <label class="check-item"><input type="checkbox" value="HACCP">HACCP</label>
+            <label class="check-item"><input type="checkbox" value="none">No specific requirements</label>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:18px" class="form-grid">
+        <div class="field">
+          <label>Current price paid (€ / tonne)</label>
+          <input type="number" id="currentPrice" placeholder="320" value="320"/>
+          <div class="field-hint">Your current market price — used to calculate premium tolerance</div>
+        </div>
+        <div class="field">
+          <label>Max regen premium tolerance</label>
+          <div class="range-wrap">
+            <input type="range" id="premiumRange" min="0" max="40" value="15"
+              oninput="document.getElementById('premiumVal').textContent=this.value+'%'"/>
+            <span class="range-val" id="premiumVal">15%</span>
+          </div>
+          <div class="field-hint">How much extra are you willing to pay for certified regen supply?</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Supply chain risk profile</div>
+      <div class="card-sub">These four questions allow the AI to quantify your specific risk exposure in euros — not just describe it.</div>
+
+      <div class="form-grid">
+        <div class="field">
+          <label>Current source region(s)</label>
+          <select id="currentSource">
+            <option value="morocco_egypt">Morocco / Egypt (North Africa)</option>
+            <option value="turkey_spain">Turkey / Spain (South Europe)</option>
+            <option value="netherlands">Netherlands only</option>
+            <option value="mixed_eu">Mixed EU countries</option>
+            <option value="mixed_global">Mixed global (3+ countries)</option>
+          </select>
+          <div class="field-hint">Where do you currently source this crop?</div>
+        </div>
+        <div class="field">
+          <label>Current contract structure</label>
+          <select id="currentContract">
+            <option value="mostly_spot">Mostly spot purchasing (&gt;60%)</option>
+            <option value="mixed">Mixed spot and contract (~50/50)</option>
+            <option value="mostly_contract">Mostly contracted (&gt;60%)</option>
+            <option value="full_contract">Fully contracted</option>
+          </select>
+          <div class="field-hint">Spot purchasing = higher price volatility exposure</div>
+        </div>
+      </div>
+
+      <div style="margin-top:16px" class="form-grid">
+        <div class="field">
+          <label>CSRD / scope 3 reporting obligation</label>
+          <select id="csrd">
+            <option value="mandatory_2025">Mandatory from 2025 (large company)</option>
+            <option value="mandatory_2026">Mandatory from 2026</option>
+            <option value="voluntary">Voluntary / preparing</option>
+            <option value="not_yet">Not applicable yet</option>
+          </select>
+          <div class="field-hint">EU Corporate Sustainability Reporting Directive</div>
+        </div>
+        <div class="field">
+          <label>Quality / supply incidents last 3 years</label>
+          <select id="incidents">
+            <option value="none">None</option>
+            <option value="minor">Minor (1-2 delivery issues)</option>
+            <option value="moderate">Moderate (quality failures or shortfall)</option>
+            <option value="major">Major (recall, contract breach, significant loss)</option>
+          </select>
+          <div class="field-hint">Used to weight traceability risk in the analysis</div>
+        </div>
+      </div>
+
+      <div style="margin-top:16px" class="form-grid">
+        <div class="field">
+          <label>Delivery specification</label>
+          <select id="deliverySpec">
+            <option value="frozen">Frozen processing</option>
+            <option value="canned">Canning / preserving</option>
+            <option value="fresh">Fresh market</option>
+            <option value="dried">Drying / dehydration</option>
+            <option value="any">Any / not specified</option>
+          </select>
+          <div class="field-hint">Affects tare economics and logistics risk significantly</div>
+        </div>
+        <div class="field">
+          <label>Supply seasonality needed</label>
+          <select id="seasonality">
+            <option value="year_round">Year-round supply</option>
+            <option value="seasonal">Seasonal window (3–6 months)</option>
+            <option value="flexible">Flexible timing</option>
+          </select>
+          <div class="field-hint">Year-round needs more farms and higher supply risk premium</div>
+        </div>
+      </div>
+
+      <div style="margin-top:16px" class="form-grid">
+        <div class="field">
+          <label>Current number of suppliers</label>
+          <select id="supplierCount">
+            <option value="1">1 supplier (single source)</option>
+            <option value="2">2 suppliers</option>
+            <option value="3" selected>3–4 suppliers</option>
+            <option value="5">5+ suppliers</option>
+          </select>
+          <div class="field-hint">Fewer suppliers = higher concentration risk multiplier</div>
+        </div>
+        <div class="field" style="visibility:hidden"></div>
+      </div>
+
+      <div style="margin-top:16px" class="form-grid full">
+        <div class="field">
+          <label>Additional context (optional)</label>
+          <textarea id="concerns" placeholder="Sustainability targets, logistics constraints, processor requirements, or anything else relevant.">We have experienced yield inconsistency from our current Moroccan supplier. We want more supply chain transparency and are exploring near-shoring to Dutch producers to reduce logistics risk and meet our 2027 scope 3 targets.</textarea>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn-primary" id="generateBtn" onclick="generate()">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+      </svg>
+      Generate buyer businesscase
+    </button>
+  </div>
+
+  <!-- ── LOADING ── -->
+  <div class="loading" id="loadingView">
+    <div class="spinner"></div>
+    <div class="loading-title">Analysing your supply requirements…</div>
+    <div id="loadingSteps" style="max-width:280px;margin:0 auto">
+      <div class="loading-step active" id="ls1">Evaluating regional supply capacity</div>
+      <div class="loading-step" id="ls2">Calculating price range and regen premium</div>
+      <div class="loading-step" id="ls3">Running supply chain risk model</div>
+      <div class="loading-step" id="ls4">Building optimistic / base / pessimistic scenarios</div>
+      <div class="loading-step" id="ls5">Compiling report</div>
+    </div>
+  </div>
+
+  <!-- ── REPORT ── -->
+  <div class="report" id="reportView">
+    <div class="report-header">
+      <div class="report-eyebrow">Orbag · Buyer businesscase report</div>
+      <div class="report-title" id="rTitle"></div>
+      <div class="report-meta" id="rMeta"></div>
+    </div>
+    <div class="report-body" id="reportBody"></div>
+  </div>
+
+</div>
+
+<script>
+// ── State ─────────────────────────────────────
+let loadingTimer = null;
+
+// ── Checkbox toggle ───────────────────────────
+document.querySelectorAll('.check-item').forEach(item => {
+  item.addEventListener('click', () => {
+    item.classList.toggle('checked');
+    item.querySelector('input').checked = item.classList.contains('checked');
+  });
+});
+
+// ── Loading animation ─────────────────────────
+function startLoading() {
+  let i = 0;
+  loadingTimer = setInterval(() => {
+    for(let s=1; s<=5; s++) {
+      const el = document.getElementById('ls'+s);
+      if(el) el.className = 'loading-step' + (s===i+1?' active': s<=i?' done':'');
+    }
+    i++;
+    if(i > 5) clearInterval(loadingTimer);
+  }, 1000);
+}
+
+// ── Form data ─────────────────────────────────
+function getFormData() {
+  const certs = Array.from(document.querySelectorAll('#certChecks input:checked')).map(c=>c.value);
+  const cropEl = document.getElementById('crop');
+  const regionEl = document.getElementById('region');
+  const contractEl = document.getElementById('contract');
+  return {
+    company:        document.getElementById('company').value || 'Unknown company',
+    sector:         document.getElementById('sector').value,
+    country:        document.getElementById('country').value || 'Netherlands',
+    budget:         parseInt(document.getElementById('budget').value) || 1000000,
+    crop:           cropEl.value,
+    cropLabel:      cropEl.options[cropEl.selectedIndex].text,
+    volume:         parseInt(document.getElementById('volume').value) || 100,
+    region:         regionEl.value,
+    regionLabel:    regionEl.options[regionEl.selectedIndex].text.split(' (')[0],
+    contract:       contractEl.value,
+    contractLabel:  contractEl.options[contractEl.selectedIndex].text,
+    certs:          certs,
+    currentPrice:   parseInt(document.getElementById('currentPrice').value) || 300,
+    premium:        parseInt(document.getElementById('premiumRange').value),
+    currentSource:  document.getElementById('currentSource').value,
+    currentContract:document.getElementById('currentContract').value,
+    csrd:           document.getElementById('csrd').value,
+    incidents:      document.getElementById('incidents').value,
+    concerns:       document.getElementById('concerns').value,
+    deliverySpec:   document.getElementById('deliverySpec').value,
+    seasonality:    document.getElementById('seasonality').value,
+    supplierCount:  document.getElementById('supplierCount').value,
+  };
+}
+
+// ── Build prompt ──────────────────────────────
+function buildPrompt(d) {
+  return `You are an expert agricultural supply chain analyst for Orbag, a Dutch regenerative agriculture AI platform. Generate a detailed buyer businesscase as pure JSON (no markdown, no backticks, no explanation — just the raw JSON object).
+
+BUYER INPUT:
+- Company: ${d.company} (${d.sector}, ${d.country})
+- Procurement budget: €${d.budget.toLocaleString()}/year
+- Target crop: ${d.cropLabel}
+- Required volume: ${d.volume} tonnes/year
+- Region: ${d.regionLabel}
+- Contract type: ${d.contractLabel}
+- Certifications required: ${d.certs.join(', ') || 'none'}
+- Current price: €${d.currentPrice}/tonne
+- Max regen premium: ${d.premium}%
+- Context: ${d.concerns || 'none provided'}
+
+Return ONLY a JSON object with this exact structure:
+{
+  "verdict": "GO" | "CONDITIONAL_GO" | "NO_GO",
+  "verdict_reason": "one sentence",
+  "kpis": {
+    "feasibility_score": number 0-100,
+    "price_range": "e.g. €340–380/tonne",
+    "available_farms": "e.g. 12–18 farms",
+    "supply_reliability": "Low" | "Medium" | "High",
+    "regen_premium": "e.g. €48/tonne (+15%)",
+    "payback_context": "short phrase e.g. traceability + carbon offset"
+  },
+  "supply_analysis": "3-4 sentences. Be specific about Dutch agricultural context, regional growing conditions for this crop, realistic supply capacity, and whether ${d.volume}t is achievable from ${d.regionLabel}.",
+  "pricing_analysis": "3-4 sentences. Cite realistic Dutch market price benchmarks for ${d.cropLabel}. Explain the regen premium range and whether ${d.premium}% tolerance is sufficient. Reference EU market conditions.",
+  "risk_assessment": [
+    {"risk": "Supply volume risk",       "level": "Low|Medium|High", "note": "specific 8-word note"},
+    {"risk": "Quality consistency",      "level": "Low|Medium|High", "note": "specific 8-word note"},
+    {"risk": "Weather / climate",        "level": "Low|Medium|High", "note": "specific 8-word note"},
+    {"risk": "Certification compliance", "level": "Low|Medium|High", "note": "specific 8-word note"},
+    {"risk": "Price volatility",         "level": "Low|Medium|High", "note": "specific 8-word note"}
+  ],
+  "scenarios": {
+    "optimistic": {"volume_pct": "e.g. 108%", "price": "e.g. €338/tonne", "note": "10-word condition"},
+    "base":       {"volume_pct": "e.g. 95%",  "price": "e.g. €362/tonne", "note": "10-word condition"},
+    "pessimistic":{"volume_pct": "e.g. 74%",  "price": "e.g. €388/tonne", "note": "10-word condition"}
+  },
+  "next_steps": [
+    "Specific step 1 — actionable, starts with a verb",
+    "Specific step 2",
+    "Specific step 3",
+    "Specific step 4"
+  ],
+  "orbag_note": "One sentence: what Orbag does next — farm matching, individual farm businesscases, contract structuring."
+}`;
+}
+
+// ── Render ────────────────────────────────────
+function renderReport(d, fd) {
+  document.getElementById('rTitle').textContent =
+    `Supply feasibility: ${fd.cropLabel} · ${fd.regionLabel}`;
+  document.getElementById('rMeta').textContent =
+    `${fd.company} · ${new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}`;
+
+  const vIcons   = { GO:'✓', CONDITIONAL_GO:'⚡', NO_GO:'✕' };
+  const vClasses = { GO:'verdict-go', CONDITIONAL_GO:'verdict-go', NO_GO:'verdict-no' };
+  const vLabels  = { GO:'Go — proceed', CONDITIONAL_GO:'Conditional go', NO_GO:'No-go' };
+  const k = d.kpis;
+
+  let html = `
+    <div class="verdict-bar ${vClasses[d.verdict]}">
+      <span class="verdict-icon">${vIcons[d.verdict]}</span>
+      <div>
+        <div class="verdict-label">${vLabels[d.verdict]}</div>
+        <div class="verdict-text">${d.verdict_reason}</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Key metrics</div>
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-label">Feasibility score</div>
+          <div class="kpi-val">${k.feasibility_score}<span style="font-size:14px;font-family:'DM Sans',sans-serif;font-weight:400"> / 100</span></div>
+          <div class="kpi-sub">Overall supply match</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Price range</div>
+          <div class="kpi-val" style="font-size:18px">${k.price_range}</div>
+          <div class="kpi-sub">Regen premium included</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Matching farms</div>
+          <div class="kpi-val" style="font-size:18px">${k.available_farms}</div>
+          <div class="kpi-sub">In preferred region</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Supply reliability</div>
+          <div class="kpi-val" style="font-size:18px">${k.supply_reliability}</div>
+          <div class="kpi-sub">Regional assessment</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Regen premium</div>
+          <div class="kpi-val" style="font-size:16px">${k.regen_premium}</div>
+          <div class="kpi-sub">${k.payback_context}</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Volume required</div>
+          <div class="kpi-val" style="font-size:18px">${fd.volume}t</div>
+          <div class="kpi-sub">${fd.contractLabel.split('(')[0].trim()}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Supply analysis</div>
+      <div class="prose"><p>${d.supply_analysis}</p></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Pricing analysis</div>
+      <div class="prose"><p>${d.pricing_analysis}</p></div>
+    </div>
+
+    ${d.processing_economics ? renderProcessingEconomics(d.processing_economics) : ''}
+
+    ${renderRiskTable(d.risk_analysis)}`;
+
+  const s = d.scenarios;
+  html += `
+    <div class="section">
+      <div class="section-title">Scenario analysis</div>
+      <div class="scenario-grid">
+        <div class="scenario sc-opt">
+          <div class="sc-label">Optimistic</div>
+          <div class="sc-val">${s.optimistic.volume_pct}</div>
+          <div class="sc-price">${s.optimistic.price}</div>
+          <div class="sc-note">${s.optimistic.note}</div>
+        </div>
+        <div class="scenario sc-base">
+          <div class="sc-label">Base case</div>
+          <div class="sc-val">${s.base.volume_pct}</div>
+          <div class="sc-price">${s.base.price}</div>
+          <div class="sc-note">${s.base.note}</div>
+        </div>
+        <div class="scenario sc-pes">
+          <div class="sc-label">Pessimistic</div>
+          <div class="sc-val">${s.pessimistic.volume_pct}</div>
+          <div class="sc-price">${s.pessimistic.price}</div>
+          <div class="sc-note">${s.pessimistic.note}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Recommended next steps</div>
+      <ul class="action-list">`;
+
+  d.next_steps.forEach((s,i) => {
+    html += `<li><span class="action-num">${i+1}</span><span>${s}</span></li>`;
+  });
+
+  html += `</ul></div>
+
+    ${d.carbon_upside ? `
+    <div style="background:#FAEEDA;border:1px solid #FAC775;border-radius:8px;padding:14px 18px;margin-bottom:10px">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#412402;margin-bottom:6px">Carbon credit upside</div>
+      <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:6px">
+        <div><span style="font-size:11px;color:#633806">Farm potential </span><span style="font-weight:500;color:#412402">${d.carbon_upside.total_farm_potential}</span></div>
+        <div><span style="font-size:11px;color:#633806">Your 30% share </span><span style="font-weight:600;color:#412402">${d.carbon_upside.buyer_share}</span></div>
+        <div><span style="font-size:11px;color:#633806">Hectares needed </span><span style="font-weight:500;color:#412402">${d.carbon_upside.ha_needed} ha</span></div>
+      </div>
+      <div style="font-size:12px;color:#633806">${d.carbon_upside.note}</div>
+    </div>` : ''}
+
+    ${d.nitrate_note ? `
+    <div style="background:#E6F1FB;border:1px solid #85B7EB;border-radius:8px;padding:12px 18px;margin-bottom:10px">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#0C447C;margin-bottom:4px">Nitrate rejection risk</div>
+      <div style="font-size:13px;color:#0C447C">${d.nitrate_note}</div>
+    </div>` : ''}
+
+    ${d.sensitivity && d.sensitivity.length ? `
+    <div class="section">
+      <div class="section-title">Sensitivity analysis — what changes the verdict</div>
+      <div style="display:grid;gap:6px">
+        ${d.sensitivity.map(s => `
+        <div style="display:grid;grid-template-columns:1fr 120px 80px 80px;gap:8px;align-items:center;padding:8px 10px;border-radius:6px;background:var(--paper);border:0.5px solid var(--color-border-tertiary);font-size:12px">
+          <span style="font-weight:500">${s.label}</span>
+          <span style="text-align:right;font-weight:500;color:${s.net_value>=0?'#3B6D11':'#BA7517'}">€${Math.round(s.net_value).toLocaleString()}/yr</span>
+          <span style="text-align:right;font-size:11px;color:${s.delta>=0?'#3B6D11':'#A32D2D'}">${s.delta>=0?'+':''}€${Math.round(s.delta).toLocaleString()}</span>
+          <span style="text-align:center;padding:2px 8px;border-radius:8px;font-size:10px;font-weight:700;background:${s.verdict==='GO'?'#EAF3DE':s.verdict==='CONDITIONAL_GO'?'#FAEEDA':'#FCEBEB'};color:${s.verdict==='GO'?'#3B6D11':s.verdict==='CONDITIONAL_GO'?'#412402':'#A32D2D'}">${s.verdict.replace('_',' ')}</span>
+        </div>`).join('')}
+      </div>
+    </div>` : ''}
+
+    ${d.logistics_note ? `
+    <div style="background:#E6F1FB;border:1px solid #85B7EB;border-radius:8px;padding:12px 18px;margin-bottom:10px">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#0C447C;margin-bottom:4px">Near-shoring logistics saving</div>
+      <div style="font-size:13px;color:#0C447C">${d.logistics_note}</div>
+    </div>` : ''}
+
+    <div class="orbag-note">
+      <div class="orbag-note-label">Orbag · what happens next</div>
+      <div class="orbag-note-text">${d.orbag_note}</div>
+    </div>
+
+    <div class="report-footer">
+      <div class="footer-note">AI-generated preliminary analysis using KWIN benchmark data and regional supply intelligence. Figures are indicative — precise terms subject to farm-level businesscase and contract negotiation.</div>
+      <div style="display:flex;gap:8px;flex-shrink:0">
+        <button class="btn-outline" onclick="resetForm()">New report</button>
+        <button class="btn-outline" onclick="window.print()">Print / save PDF</button>
+      </div>
+    </div>`;
+
+  document.getElementById('reportBody').innerHTML = html;
+}
+
+
+function renderProcessingEconomics(p) {
+  if (!p || !p.total_saving_per_tonne) return '';
+  const isPositive = p.net_cost_vs_conventional && p.net_cost_vs_conventional.includes('cheaper');
+  const confClass = p.confidence==='High' ? 'background:#EAF3DE;color:#3B6D11' : p.confidence==='Medium' ? 'background:#FAEEDA;color:#412402' : 'background:#FCEBEB;color:#A32D2D';
+  return `
+    <div class="section">
+      <div class="section-title">Processing economics — regen raw material value</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px">
+        <div class="kpi-card">
+          <div class="kpi-label">Tare saving</div>
+          <div class="kpi-val" style="font-size:18px;color:#3B6D11">${p.tare_saving_per_tonne}</div>
+          <div class="kpi-sub">per tonne purchased</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Yield / DM gain</div>
+          <div class="kpi-val" style="font-size:18px;color:#3B6D11">${p.dm_value_per_tonne}</div>
+          <div class="kpi-sub">more usable product</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Defect saving</div>
+          <div class="kpi-val" style="font-size:18px;color:#3B6D11">${p.defect_saving_per_tonne}</div>
+          <div class="kpi-sub">fewer rejections</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+        <div style="padding:14px;border-radius:8px;background:#FCEBEB;border:1px solid #F09595">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#A32D2D;margin-bottom:4px">Total processing savings</div>
+          <div style="font-size:20px;font-weight:500;color:#A32D2D">${p.total_saving_per_tonne}</div>
+          <div style="font-size:11px;color:#791F1F;margin-top:2px">per tonne — offsets regen premium</div>
+        </div>
+        <div style="padding:14px;border-radius:8px;background:${isPositive?'#EAF3DE':'#FAEEDA'};border:1px solid ${isPositive?'#97C459':'#FAC775'}">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:${isPositive?'#3B6D11':'#412402'};margin-bottom:4px">Net cost vs conventional</div>
+          <div style="font-size:18px;font-weight:500;color:${isPositive?'#3B6D11':'#412402'}">${p.net_cost_vs_conventional}</div>
+          <div style="font-size:11px;color:${isPositive?'#27500A':'#633806'};margin-top:2px">per unit of finished product</div>
+        </div>
+      </div>
+      <div style="padding:12px 14px;border-radius:8px;background:var(--paper);border:1px solid var(--line);display:flex;align-items:flex-start;gap:10px;font-size:13px">
+        <span style="padding:2px 8px;border-radius:8px;font-size:10px;font-weight:700;flex-shrink:0;${confClass}">${p.confidence} confidence</span>
+        <span style="color:var(--stone)">${p.caveat}</span>
+      </div>
+      <div style="margin-top:10px;padding:12px 14px;border-radius:8px;background:var(--mint);border:1px solid var(--leaf);font-size:13px">
+        <span style="font-weight:500;color:var(--forest)">Annual impact at this volume: </span>
+        <span style="font-weight:600;color:#3B6D11">${p.annual_impact}</span>
+      </div>
+    </div>`;
+}
+
+function renderRiskTable(r) {
+  if (!r || !r.layers) return '';
+  const rows = r.layers.map(l => `
+    <div style="display:grid;grid-template-columns:140px 90px 90px 90px 1fr;gap:8px;padding:8px 0;border-bottom:0.5px solid var(--color-border-tertiary);font-size:12px;align-items:start">
+      <span style="font-weight:500;color:var(--color-text-primary)">${l.layer}</span>
+      <span style="color:#A32D2D;text-align:right;font-weight:500">${l.current}</span>
+      <span style="color:#3B6D11;text-align:right">${l.regen}</span>
+      <span style="color:#3B6D11;font-weight:500;text-align:right">${l.reduction}</span>
+      <span style="color:var(--color-text-secondary);font-size:11px">${l.basis}</span>
+    </div>`).join('');
+  return `
+    <div class="section">
+      <div class="section-title">Chain risk quantification — annual euro exposure</div>
+      <div style="display:grid;grid-template-columns:140px 90px 90px 90px 1fr;gap:8px;padding:4px 0 8px">
+        <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--color-text-secondary)">Layer</span>
+        <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#A32D2D;text-align:right">Current</span>
+        <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#3B6D11;text-align:right">Regen NL</span>
+        <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#3B6D11;text-align:right">Saved</span>
+        <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--color-text-secondary)">How calculated</span>
+      </div>
+      ${rows}
+      ${r.logistics_saving ? `<div style="display:grid;grid-template-columns:140px 90px 90px 90px 1fr;gap:8px;padding:8px 0;border-top:0.5px solid var(--color-border-secondary);margin-top:4px;font-size:12px">
+        <span style="font-weight:500">Near-shoring saving</span>
+        <span style="text-align:right;color:#A32D2D">—</span>
+        <span style="text-align:right;color:#3B6D11;font-weight:500">+${r.logistics_saving}</span>
+        <span style="text-align:right;color:#3B6D11;font-weight:500">+${r.logistics_saving}</span>
+        <span style="color:var(--color-text-secondary);font-size:11px">${r.logistics_basis}</span>
+      </div>` : ''}
+      <div style="display:grid;grid-template-columns:140px 90px 90px 90px 1fr;gap:8px;padding:10px 0 6px;border-top:1.5px solid var(--color-border-secondary);margin-top:4px">
+        <span style="font-weight:500;font-size:13px">Total</span>
+        <span style="color:#A32D2D;font-weight:700;text-align:right;font-size:13px">${r.current_total_exposure}</span>
+        <span style="color:#3B6D11;font-weight:500;text-align:right;font-size:13px">${r.residual_exposure_regen}</span>
+        <span style="color:#3B6D11;font-weight:700;text-align:right;font-size:13px">${r.risk_reduction_value}</span>
+        <span></span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px">
+        <div style="background:#FCEBEB;border:1px solid #F09595;border-radius:8px;padding:12px 14px">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#A32D2D;margin-bottom:4px">Premium cost</div>
+          <div style="font-size:20px;font-weight:500;color:#A32D2D">${r.premium_cost}</div>
+          <div style="font-size:11px;color:#791F1F;margin-top:2px">annual extra spend vs conventional</div>
+        </div>
+        <div style="background:#EAF3DE;border:1px solid #97C459;border-radius:8px;padding:12px 14px">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#3B6D11;margin-bottom:4px">Net value</div>
+          <div style="font-size:20px;font-weight:500;color:#3B6D11">${r.net_value}</div>
+          <div style="font-size:11px;color:#27500A;margin-top:2px">risk reduction minus premium cost</div>
+        </div>
+      </div>
+    </div>`;
+}
+
+// ── Generate ──────────────────────────────────
+async function generate() {
+  const errBox = document.getElementById('errorBox');
+  errBox.className = 'error-box';
+
+  const fd = getFormData();
+
+  // Progress
+  document.getElementById('pd1').className = 'step-dot done';
+  document.getElementById('pd2').className = 'step-dot done';
+  document.getElementById('pd3').className = 'step-dot active';
+
+  document.getElementById('formView').style.display = 'none';
+  document.getElementById('reportView').className = 'report';
+  document.getElementById('loadingView').className = 'loading show';
+  startLoading();
+
+  try {
+    const res = await fetch('/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(fd)
+    });
+
+    clearInterval(loadingTimer);
+    document.getElementById('loadingView').className = 'loading';
+
+    if(!res.ok) {
+      const err = await res.json().catch(()=>({}));
+      throw new Error(err.error?.message || `API error ${res.status}`);
+    }
+
+    const report = await res.json();
+    renderReport(report, fd);
+    document.getElementById('reportView').className = 'report show';
+
+  } catch(err) {
+    clearInterval(loadingTimer);
+    document.getElementById('loadingView').className = 'loading';
+    document.getElementById('formView').style.display = 'block';
+    document.getElementById('pd1').className = 'step-dot done';
+    document.getElementById('pd2').className = 'step-dot active';
+    document.getElementById('pd3').className = 'step-dot';
+    errBox.textContent = `Error: ${err.message}`;
+    errBox.className = 'error-box show';
+  }
+}
+
+function resetForm() {
+  document.getElementById('formView').style.display = 'block';
+  document.getElementById('reportView').className = 'report';
+  document.getElementById('errorBox').className = 'error-box';
+  document.getElementById('pd1').className = 'step-dot active';
+  document.getElementById('pd2').className = 'step-dot';
+  document.getElementById('pd3').className = 'step-dot';
+}
+</script>
+</body>
+</html>
