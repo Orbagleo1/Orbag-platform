@@ -1,185 +1,185 @@
 export const config = { maxDuration: 60 };
 
 const BENCHMARK_DATA = `
-=== OFFICIËLE KWIN-AGV 2024 BENCHMARKS (bron: WUR/BIJ12, gebaseerd op 5-jarig gemiddelde 2019-2023) ===
+=== OFFICIËLE KWIN-AGV 2024 BENCHMARKS (bron: WUR/BIJ12, 5-jarig gemiddelde 2019-2023) ===
 
-WINTERTARWE:
-- Opbrengst kleigrond Noord-Nederland: 9.100–9.400 kg/ha
-- Opbrengst zandgrond: 9.300 kg/ha
-- Gangbare prijs: €0,23/kg (= €230/tonne)
-- Biologische tarwe kleigebieden: 7.000 kg/ha @ €0,34/kg (= €340/tonne)
-- Teeltkosten gangbaar (zaad, bemesting, gwasbescherming, loonwerk): €1.200–1.600/ha
-- Saldo gangbaar Noord-Nederland: €500–700/ha
-- Regen premium verwacht: €40–80/tonne boven gangbaar
+WINTERTARWE: opbrengst kleigrond Noord-NL 9.100-9.400 kg/ha | gangbaar €230/tonne | biologisch €340/tonne | teeltkosten €1.200-1.600/ha | saldo €500-700/ha | regen premium €40-80/tonne
+POOTAARDAPPELEN Noord-NL kleigrond: opbrengst 34.500 kg/ha | prijs €310/tonne | teeltkosten €3.500-4.500/ha | regen premium €30-60/tonne
+CONSUMPTIEAARDAPPELEN kleigrond Noord-NL: opbrengst 49.500 kg/ha | prijs €170/tonne (volatiel) | teeltkosten €2.800-3.800/ha | regen premium €20-40/tonne
+ZETMEELAARDAPPELEN Noord-NL: opbrengst 40.000 kg/ha | prijs €100/tonne (vast via AVEBE) | saldo €1.200-1.800/ha stabiel
+SUIKERBIETEN Noord-NL kleigrond: opbrengst 80.000 kg/ha | prijs €45,23/tonne | teeltkosten €2.200-2.800/ha
+HAVER: opbrengst 5.200 kg/ha gangbaar | prijs €210/tonne gangbaar | biologisch €320/tonne | teeltkosten €800-1.100/ha
+SPERZIEBONEN industrieel NL: opbrengst 8.000-12.000 kg/ha | contractprijs €280-380/tonne | regen premium 15-25% | teeltkosten €1.800-2.400/ha
+ERWTEN/PEULVRUCHTEN Noord-NL: opbrengst 4.000-5.500 kg/ha | prijs €350-500/tonne gangbaar | €600-800/tonne biologisch/regen
+UIEN kleigrond Noord-NL: opbrengst 55.000-70.000 kg/ha | prijs €100-180/tonne (sterk volatiel)
+WORTELEN industrieel Noord-NL: opbrengst 70.000-90.000 kg/ha | contractprijs €80-120/tonne
 
-POOTAARDAPPELEN Noord-Nederland (kleigrond):
-- Opbrengst: 34.500 kg/ha
-- Gangbare prijs: €0,31/kg (= €310/tonne)
-- Teeltkosten: €3.500–4.500/ha (hoog door pootgoed en bewaring)
-- Saldo: €200–800/ha afhankelijk van prijsvorming
-- Regen premium: €30–60/tonne
+=== REGEN PREMIUMS NEDERLAND 2024-2025 ===
+Certificering kosten: €20-80/ha extra | Carbon credits akkerbouw: €30-80/ha potentieel
+Regen premium boven gangbaar retail/foodservice: 10-25% afhankelijk van gewas
+Betrouwbaarheidsbonus contractteelt: 3-8% waarde voor afnemer
+`;
 
-CONSUMPTIEAARDAPPELEN (kleigrond IJsselmeerpolders/Noord):
-- Opbrengst: 49.500 kg/ha
-- Gangbare prijs: €0,17/kg (= €170/tonne) — sterk volatiel
-- Teeltkosten: €2.800–3.800/ha
-- Saldo gangbaar: fluctueert sterk, -€500 tot +€2.000/ha
-- Regen premium: €20–40/tonne
+const RISK_DATA = `
+=== SUPPLY CHAIN RISK KWANTIFICERING PER BRONREGIO ===
 
-ZETMEELAARDAPPELEN (Noord-Nederland dalgrond/zandgrond):
-- Opbrengst: 40.000 kg/ha
-- Prijs: €0,10/kg (= €100/tonne) — vaste afzet via AVEBE
-- Teeltkosten: €1.800–2.400/ha
-- Saldo: €1.200–1.800/ha stabiel
+GEOPOLITIEK RISICO (jaarlijkse blootstelling als % van contractwaarde):
+- Marokko/Egypte: 12-18% (politieke instabiliteit, exportrestricties, valutarisico, transportkosten +€60-120/tonne vs NL)
+- Turkije/Spanje: 6-10% (EU-relatie risico, klimaat extremen, logistieke complexiteit)
+- Nederland only: 1-3% (EU-stabiliteit, geen transportrisico)
+- Mixed EU: 3-6%
+- Mixed global 3+ landen: 8-15%
 
-SUIKERBIETEN Noord-Nederland (kleigrond):
-- Opbrengst: 80.000 kg/ha
-- Prijs: €45,23/tonne
-- Teeltkosten: €2.200–2.800/ha
-- Saldo: €800–1.400/ha
+WEERSRISICO (yield variance en impact op leveringszekerheid):
+- Marokko/Egypte: 25-40% yield variance, droogterisico hoog, klimaattrend negatief
+- Conventioneel NL monocultuur: 15-25% yield variance, bodemgezondheid dalend
+- Regeneratief NL: 8-15% yield variance, bodem als buffer, rotatie spreidt risico
+- Financiële impact bij 20% yield shortfall op 500t = 100t tekort = €30.000-80.000 noodinkoop premie
 
-HAVER:
-- Opbrengst: 5.200 kg/ha gangbaar
-- Prijs gangbaar: €0,21/kg (= €210/tonne)
-- Biologische haver zandgebieden: 6.000 kg/ha @ €0,32/kg (= €320/tonne)
-- Teeltkosten: €800–1.100/ha
-- Saldo gangbaar: €300–600/ha
+KWALITEIT/TRACEERBAARHEID RISICO:
+- Spot inkoop meerder origins: recall risico €50.000-500.000 per incident (afhankelijk van sector)
+- Vaste contractteler NL: recall risico 60-80% lager door farm-level traceability
+- Incidenten in afgelopen 3 jaar vermenigvuldigen risicoscore met 1.5-2.5x
 
-WINTERTARWE biologisch:
-- Opbrengst: 7.000 kg/ha kleigebieden
-- Prijs: €0,34/kg (= €340/tonne)
-- Premium boven gangbaar: €110/tonne
+PRIJSVOLATILITEIT RISICO (jaar-op-jaar swings):
+- Spot inkoop: 30-50% prijsswing mogelijk (zie ui-markt NL: €50-180/tonne range in 5 jaar)
+- Mixed spot/contract: 15-25% effectieve blootstelling
+- Full contract regen: 5-10% (premium is vast, inputkosten stabiel door minder kunstmest)
 
-ERWTEN/PEULVRUCHTEN (Noord-Nederland):
-- Opbrengst: 4.000–5.500 kg/ha
-- Prijs: €0,35–0,50/kg gangbaar, €0,60–0,80/kg biologisch/regen
-- Teeltkosten: €900–1.200/ha
-- Stikstofbindend — belangrijke regen rotatiebijdrage
+CSRD/REGELGEVINGS RISICO (boeterisico en rapporteringskosten):
+- Mandatory 2025 zonder data: €50.000-200.000 compliance gap kosten
+- Mandatory 2026 zonder data: €30.000-120.000
+- Regen contract met Orbag: scope 3 data automatisch beschikbaar, audit-ready
 
-UIEN (kleigrond Noord-Nederland):
-- Opbrengst: 55.000–70.000 kg/ha
-- Gangbare prijs: €0,10–0,18/kg (sterk volatiel)
-- Teeltkosten: €2.500–3.200/ha
+=== RISICOWAARDE BEREKENING ===
+Totale jaarlijkse risicowaarde gangbare keten = som van:
+1. Geopolitiek: contractwaarde × geopolitiek% 
+2. Weer: volume × kans shortfall × noodinkoop premium
+3. Kwaliteit: recall kans × gemiddelde recall kosten × incidentfactor
+4. Prijsvolatiliteit: contractwaarde × volatiliteit%
+5. CSRD: compliance gap kosten / jaren tot deadline
 
-SPERZIEBONEN (industrieel/contractteelt Nederland):
-- Opbrengst: 8.000–12.000 kg/ha (vers gewicht)
-- Contractprijs industrie: €0,28–0,38/kg vers (= €280–380/tonne)
-- Regen/biologisch premium: 15–25% boven gangbaar
-- Teeltkosten: €1.800–2.400/ha (arbeidsintensief)
-- Saldo gangbaar: €400–900/ha
-- Bonduelle, Hak, Farm Frites zijn grote afnemers NL
-- Noord-Nederland: geschikt op kleigrond, rijstijd 60–70 dagen
-
-WORTELEN (industrieel Noord-Nederland):
-- Opbrengst: 70.000–90.000 kg/ha
-- Contractprijs industrie: €0,08–0,12/kg
-- Regen premium: beperkt, markt minder volwassen
-
-=== REGENERATIEVE LANDBOUW PREMIUMS NEDERLAND 2024-2025 ===
-- Certificering (bijv. Soil & More, On the Way to PlanetProof): €20–80/ha extra kosten
-- Carbon credits akkerbouw: €30–80/ha potentieel (markt nog in ontwikkeling)
-- Regen premium retail/foodservice boven gangbaar: 10–25% afhankelijk van gewas en afnemer
-- Betrouwbaarheidsbonus bij contractteelt (minder uitval): 3–8% waarde voor afnemer
-
-=== TEELTKOSTEN STRUCTUUR NOORD-NEDERLAND (kleigrond, per ha) ===
-- Grondkosten (pacht/eigendom): €600–1.200/ha/jr
-- Vaste mechanisatiekosten: €400–700/ha
-- Loonwerkkosten: €300–600/ha afhankelijk gewas
-- Arbeid (eigen): €150–350/ha
-- Zaad/pootgoed: gewasafhankelijk (tarwe €90, aardappelen €800–1.400)
-- Bemesting gangbaar: €300–600/ha (sterk gestegen 2022-2023, nu stabielere markt)
-- Bemesting regen: €150–300/ha (compost, groenbemesters, minder kunstmest)
-- Gewasbescherming gangbaar: €200–500/ha
-- Gewasbescherming regen/bio: €50–200/ha
+Regen alternatief reduceert posten 1-4 met 40-70% en elimineert post 5 vrijwel volledig.
 `;
 
 function buildPrompt(d) {
   const cropNames = {
-    green_beans: 'green beans (sperziebonen)', wheat: 'wheat (wintertarwe)',
-    potatoes: 'potatoes (consumptieaardappelen)', onions: 'onions (uien)',
-    lentils: 'lentils/pulses (linzen/peulvruchten)', oats: 'oats (haver)',
-    peas: 'peas (erwten)', carrots: 'carrots (wortelen)',
+    green_beans:'green beans (sperziebonen)',wheat:'wheat (wintertarwe)',
+    potatoes:'potatoes (consumptieaardappelen)',onions:'onions (uien)',
+    lentils:'lentils/pulses (linzen/peulvruchten)',oats:'oats (haver)',
+    peas:'peas (erwten)',carrots:'carrots (wortelen)',
   };
   const regionNames = {
-    noord_nederland: 'Noord-Nederland (Groningen, Friesland, Drenthe) — kleigrond en dalgrond',
-    west_nederland: 'West-Nederland (Zuid-Holland, Zeeland) — kleigrond',
-    oost_nederland: 'Oost-Nederland (Gelderland, Overijssel) — zand en rivierklei',
-    portugal: 'Portugal (Alentejo) — mediterraan klimaat, droogterisico',
-    morocco: 'Marokko — mediterraan/semi-aride, seizoensgebonden',
-    denmark: 'Denemarken — vergelijkbaar klimaat NL, sterk regen netwerk',
-    no_preference: 'geen regiovoorkeur — Nederland breed',
+    noord_nederland:'Noord-Nederland (Groningen, Friesland, Drenthe) kleigrond/dalgrond',
+    west_nederland:'West-Nederland (Zuid-Holland, Zeeland) kleigrond',
+    oost_nederland:'Oost-Nederland (Gelderland, Overijssel) zand/rivierklei',
+    portugal:'Portugal (Alentejo) mediterraan klimaat',
+    morocco:'Marokko semi-aride klimaat',
+    denmark:'Denemarken vergelijkbaar klimaat NL',
+    no_preference:'geen regiovoorkeur Nederland',
   };
-  const contractNames = {
-    season: 'volledig seizoenscontract (12 maanden)',
-    spot: 'spot inkoop',
-    multi_year: 'meerjarig raamcontract (2–3 jaar)',
+  const sourceNames = {
+    morocco_egypt:'Marokko/Egypte (Noord-Afrika)',
+    turkey_spain:'Turkije/Spanje (Zuid-Europa)',
+    netherlands:'Nederland',
+    mixed_eu:'gemengd EU',
+    mixed_global:'gemengd globaal (3+ landen)',
   };
-  const sectorNames = {
-    food_processor: 'food processor / conservenindustrie',
-    retailer: 'retailer / supermarkt',
-    catering: 'catering / foodservice',
-    wholesaler: 'groothandel',
-    exporter: 'exporteur',
+  const contractStructureNames = {
+    mostly_spot:'voornamelijk spot inkoop (>60%)',
+    mixed:'gemengd spot en contract (~50/50)',
+    mostly_contract:'voornamelijk gecontracteerd (>60%)',
+    full_contract:'volledig gecontracteerd',
+  };
+  const csrdNames = {
+    mandatory_2025:'verplicht vanaf 2025',
+    mandatory_2026:'verplicht vanaf 2026',
+    voluntary:'vrijwillig / voorbereiding',
+    not_yet:'nog niet van toepassing',
+  };
+  const incidentNames = {
+    none:'geen incidenten',
+    minor:'kleine incidenten (1-2 leveringsproblemen)',
+    moderate:'matige incidenten (kwaliteitsfouten of tekort)',
+    major:'grote incidenten (recall, contractbreuk of significant verlies)',
   };
 
-  return `You are an expert agricultural supply chain analyst for Orbag, a Dutch regenerative agriculture AI platform. Generate a detailed buyer businesscase as pure JSON only — no markdown, no backticks, no explanation.
+  const contractValue = d.volume * d.currentPrice;
 
-USE THE FOLLOWING OFFICIAL DUTCH BENCHMARK DATA AS YOUR PRIMARY SOURCE. Do not deviate from these price ranges without explicit reasoning:
+  return `You are an expert supply chain risk analyst and agricultural economist for Orbag, a Dutch regenerative agriculture platform. Generate a buyer businesscase that QUANTIFIES supply chain risk in euros. Output pure JSON only — no markdown, no backticks.
+
+USE THESE OFFICIAL DATA SOURCES — DO NOT DEVIATE:
 
 ${BENCHMARK_DATA}
 
-BUYER INPUT:
-- Company: ${d.company} (${sectorNames[d.sector] || d.sector}, ${d.country})
-- Annual procurement budget: €${Number(d.budget).toLocaleString()}
+${RISK_DATA}
+
+BUYER PROFILE:
+- Company: ${d.company} (${d.sector}, ${d.country})
 - Target crop: ${cropNames[d.crop] || d.crop}
 - Required volume: ${d.volume} tonnes/year
-- Region: ${regionNames[d.region] || d.region}
-- Contract type: ${contractNames[d.contract] || d.contract}
-- Certifications required: ${(d.certs || []).join(', ') || 'none'}
-- Current price paid: €${d.currentPrice}/tonne
-- Max regen premium tolerance: ${d.premium}%
-- Context: ${d.concerns || 'none provided'}
+- Desired source region: ${regionNames[d.region] || d.region}
+- Current price: €${d.currentPrice}/tonne
+- Annual contract value at current price: €${contractValue.toLocaleString()}
+- Max regen premium: ${d.premium}%
+- Certifications required: ${(d.certs||[]).join(', ')||'none'}
+- Contract type desired: ${d.contractLabel || d.contract}
 
-CRITICAL INSTRUCTIONS:
-1. Use ONLY the benchmark prices above for the crop and region specified. Cite the exact KWIN figures.
-2. Calculate the regen premium as a percentage of the gangbare (conventional) KWIN price.
-3. For Noord-Nederland specifically: reference kleigrond vs dalgrond/zandgrond differences where relevant.
-4. The feasibility score must reflect whether the buyer's volume is achievable given regional supply capacity.
-5. All euro amounts must be realistic and consistent with the KWIN benchmarks above.
+RISK PROFILE:
+- Current source region: ${sourceNames[d.currentSource] || d.currentSource || 'unknown'}
+- Current contract structure: ${contractStructureNames[d.currentContract] || d.currentContract || 'unknown'}
+- CSRD scope 3 obligation: ${csrdNames[d.csrd] || d.csrd || 'unknown'}
+- Quality/supply incidents last 3 years: ${incidentNames[d.incidents] || d.incidents || 'none'}
+- Additional context: ${d.concerns || 'none'}
 
-Return ONLY this JSON structure:
+CALCULATION INSTRUCTIONS:
+1. Calculate the CURRENT annual risk exposure in euros using the risk data above. Show each of the 5 risk layers separately.
+2. Calculate the RESIDUAL risk exposure with regenerative Noord-Nederland sourcing.
+3. Calculate the RISK REDUCTION VALUE = current exposure minus residual exposure.
+4. Calculate the PREMIUM COST = volume × current price × (premium% / 100).
+5. Calculate the NET VALUE = risk reduction value minus premium cost.
+6. If net value is positive, verdict = GO. If marginal (within 20%), verdict = CONDITIONAL_GO. If negative, verdict = NO_GO.
+
+Return ONLY this JSON:
 {
-  "verdict": "GO" | "CONDITIONAL_GO" | "NO_GO",
-  "verdict_reason": "one sentence citing specific KWIN benchmark data",
+  "verdict": "GO"|"CONDITIONAL_GO"|"NO_GO",
+  "verdict_reason": "one sentence with specific euro figures e.g. risk reduction of €X outweighs premium cost of €Y by €Z",
   "kpis": {
     "feasibility_score": number 0-100,
-    "price_range": "e.g. €320-360/tonne (based on KWIN gangbaar €230 + regen premium)",
-    "available_farms": "realistic estimate e.g. 15-25 farms in region",
-    "supply_reliability": "Low" | "Medium" | "High",
-    "regen_premium": "e.g. €48/tonne (+21% above KWIN gangbaar)",
-    "payback_context": "what the premium delivers e.g. traceability + carbon credits"
+    "price_range": "€X-Y/tonne (KWIN gangbaar + regen premium)",
+    "available_farms": "realistic estimate e.g. 12-20 farms in Noord-NL",
+    "supply_reliability": "Low"|"Medium"|"High",
+    "regen_premium": "€X/tonne (+Y% above KWIN gangbaar €Z)",
+    "payback_context": "premium pays back in X months via risk reduction"
   },
-  "supply_analysis": "3-4 sentences. Reference specific KWIN yield figures for this crop and region. State whether ${d.volume}t is achievable. Mention number of hectares needed based on KWIN yields.",
-  "pricing_analysis": "3-4 sentences. State the exact KWIN gangbare prijs. Calculate the regen premium explicitly. State whether buyer's ${d.premium}% tolerance covers the premium. Reference biologisch/regen price benchmarks from KWIN.",
-  "risk_assessment": [
-    {"risk": "Supply volume risk", "level": "Low|Medium|High", "note": "based on regional ha availability"},
-    {"risk": "Quality consistency", "level": "Low|Medium|High", "note": "certification status Noord-NL"},
-    {"risk": "Weather / climate", "level": "Low|Medium|High", "note": "specific to crop and region"},
-    {"risk": "Certification compliance", "level": "Low|Medium|High", "note": "regen cert landscape NL"},
-    {"risk": "Price volatility", "level": "Low|Medium|High", "note": "based on KWIN 5yr trend"}
-  ],
+  "risk_analysis": {
+    "current_total_exposure": "€X.XXX/year",
+    "residual_exposure_regen": "€X.XXX/year",
+    "risk_reduction_value": "€X.XXX/year",
+    "premium_cost": "€X.XXX/year",
+    "net_value": "€X.XXX/year",
+    "layers": [
+      {"layer": "Geopolitical", "current": "€X.XXX", "regen": "€X.XXX", "reduction": "€X.XXX", "basis": "brief calculation note"},
+      {"layer": "Weather / yield", "current": "€X.XXX", "regen": "€X.XXX", "reduction": "€X.XXX", "basis": "brief calculation note"},
+      {"layer": "Quality / traceability", "current": "€X.XXX", "regen": "€X.XXX", "reduction": "€X.XXX", "basis": "brief calculation note"},
+      {"layer": "Price volatility", "current": "€X.XXX", "regen": "€X.XXX", "reduction": "€X.XXX", "basis": "brief calculation note"},
+      {"layer": "CSRD / regulatory", "current": "€X.XXX", "regen": "€X.XXX", "reduction": "€X.XXX", "basis": "brief calculation note"}
+    ]
+  },
+  "supply_analysis": "3-4 sentences. Use specific KWIN yield figures. State how many hectares needed. Comment on Noord-NL regional suitability for this crop.",
+  "pricing_analysis": "3-4 sentences. State exact KWIN gangbare prijs. Calculate regen premium explicitly. State whether ${d.premium}% tolerance is sufficient.",
   "scenarios": {
-    "optimistic": {"volume_pct": "% of required volume", "price": "€/tonne", "note": "condition e.g. good harvest, multiple farms secured"},
-    "base": {"volume_pct": "%", "price": "€/tonne", "note": "condition"},
-    "pessimistic": {"volume_pct": "%", "price": "€/tonne", "note": "condition e.g. poor harvest, certification delays"}
+    "optimistic": {"volume_pct": "e.g. 108%", "price": "€/tonne", "risk_exposure": "€/year", "note": "condition"},
+    "base":       {"volume_pct": "e.g. 95%",  "price": "€/tonne", "risk_exposure": "€/year", "note": "condition"},
+    "pessimistic":{"volume_pct": "e.g. 74%",  "price": "€/tonne", "risk_exposure": "€/year", "note": "condition"}
   },
   "next_steps": [
-    "Contact Orbag to identify [X] certified farms in [region] with capacity for [crop]",
-    "Step 2 — specific and actionable",
-    "Step 3",
-    "Step 4"
+    "Orbag identifies [X] certified regen farms in Noord-NL with capacity for [crop] — step 1 action",
+    "Step 2 — specific",
+    "Step 3 — specific",
+    "Step 4 — specific"
   ],
-  "orbag_note": "One sentence: what Orbag does next — farm matching, individual farm businesscases, contract structuring."
+  "orbag_note": "One sentence on what Orbag does next for this specific buyer."
 }`;
 }
 
@@ -187,13 +187,11 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    const formData = req.body;
-
+    const d = req.body;
     const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -203,8 +201,8 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         model: 'claude-haiku-4-5',
-        max_tokens: 1500,
-        messages: [{ role: 'user', content: buildPrompt(formData) }],
+        max_tokens: 2000,
+        messages: [{ role: 'user', content: buildPrompt(d) }],
       }),
     });
 
@@ -228,17 +226,17 @@ export default async function handler(req, res) {
           'Prefer': 'return=minimal',
         },
         body: JSON.stringify({
-          company:      formData.company,
-          sector:       formData.sector,
-          crop:         formData.crop,
-          region:       formData.region,
-          volume:       Number(formData.volume),
-          current_price:Number(formData.currentPrice),
-          premium:      Number(formData.premium),
+          company:      d.company,
+          sector:       d.sector,
+          crop:         d.crop,
+          region:       d.region,
+          volume:       Number(d.volume),
+          current_price:Number(d.currentPrice),
+          premium:      Number(d.premium),
           verdict:      report.verdict,
           feasibility:  report.kpis?.feasibility_score,
           price_range:  report.kpis?.price_range,
-          input_data:   formData,
+          input_data:   d,
           report_data:  report,
           created_at:   new Date().toISOString(),
         }),
@@ -246,7 +244,6 @@ export default async function handler(req, res) {
     }
 
     return res.status(200).json(report);
-
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
