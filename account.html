@@ -277,6 +277,7 @@ async function saveProfile() {
 
   if (error) return showMsg('profileMsg', 'Fout bij opslaan: ' + error.message, 'error');
   showMsg('profileMsg', 'Profiel opgeslagen ✓', 'success');
+  setTimeout(() => { window.location.href = '/'; }, 1000);
 }
 
 async function logout() {
