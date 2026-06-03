@@ -5,12 +5,18 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Orbag · Regenerative Farming Knowledge</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Sigmar&family=Exo:wght@300;400;500;600&family=Sedgwick+Ave+Display&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{--forest:#0D3D2B;--leaf:#1D9E75;--mint:#E1F5EE;--ink:#0F1A14;--stone:#5A6862;--paper:#F7F5F0;--line:#D8D5CE;--white:#FFFFFF;--radius:10px;--amber:#BA7517;--amber-l:#FAEEDA}
-body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);font-size:14px;line-height:1.6}
+:root{
+  --forest:#14302B;--forest2:#143632;--creme:#F5F5D7;--sand:#E2E0B0;
+  --fresh:#56BC3E;--magenta:#E44796;--leaf:#56BC3E;--mint:#E8F7E3;
+  --ink:#0F1A14;--stone:#5A6862;--paper:#F5F5D7;--line:#D8D5CE;
+  --white:#FFFFFF;--amber:#BA7517;--amber-l:#FAEEDA;
+  --red:#A32D2D;--red-l:#FCEBEB;--radius:10px;
+}
+body{font-family:'Exo',sans-serif;background:var(--paper);color:var(--ink);font-size:14px;line-height:1.6}
 .header{background:var(--forest);padding:18px 40px;display:flex;align-items:center;justify-content:space-between}
-.logo{font-family:'DM Serif Display',serif;font-size:24px;color:#fff;text-decoration:none}
+.logo{font-family:'Sigmar',cursive;font-size:24px;color:#fff;text-decoration:none}
 .logo span{color:var(--leaf)}
 .nav{display:flex;gap:8px;align-items:center}
 .nav a{font-size:12px;color:rgba(255,255,255,.5);text-decoration:none;padding:6px 12px;border:0.5px solid rgba(255,255,255,.15);border-radius:6px;transition:all .15s}
@@ -18,18 +24,18 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);f
 .nav a.active{background:rgba(255,255,255,.08)}
 .hero{background:var(--forest);padding:60px 40px;text-align:center}
 .hero-eyebrow{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--leaf);margin-bottom:12px}
-.hero-title{font-family:'DM Serif Display',serif;font-size:40px;color:#fff;margin-bottom:16px;line-height:1.15}
+.hero-title{font-family:'Sigmar',cursive;font-size:40px;color:#fff;margin-bottom:16px;line-height:1.15}
 .hero-sub{font-size:16px;color:rgba(255,255,255,.6);max-width:560px;margin:0 auto 32px}
 .hero-cta{display:inline-flex;align-items:center;gap:8px;background:var(--leaf);color:#fff;padding:12px 24px;border-radius:8px;font-size:14px;font-weight:600;text-decoration:none;transition:background .15s}
-.hero-cta:hover{background:#178c64}
+.hero-cta:hover{background:#3ea32a}
 .main{max-width:1040px;margin:0 auto;padding:48px 24px}
 .section-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:24px}
-.section-title{font-family:'DM Serif Display',serif;font-size:24px;color:var(--forest)}
+.section-title{font-family:'Sigmar',cursive;font-size:24px;color:var(--forest)}
 .see-all{font-size:13px;color:var(--leaf);text-decoration:none}
 .see-all:hover{text-decoration:underline}
 .tag{display:inline-block;font-size:11px;font-weight:600;padding:3px 9px;border-radius:10px;text-transform:uppercase;letter-spacing:.04em}
-.tag-soil{background:#EAF3DE;color:#3B6D11}
-.tag-crop{background:var(--mint);color:#085041}
+.tag-soil{background:#EAF3DE;color:#2d7a1e}
+.tag-crop{background:var(--mint);color:#2d7a1e}
 .tag-policy{background:#E6F1FB;color:#0C447C}
 .tag-economics{background:var(--amber-l);color:#412402}
 .tag-carbon{background:#F1EFE8;color:#5F5E5A}
@@ -44,14 +50,14 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);f
 .article-excerpt{font-size:13px;color:var(--stone);line-height:1.55}
 .article-card.featured{grid-column:span 2}
 .article-card.featured .article-img{height:200px;font-size:60px}
-.article-card.featured .article-title{font-family:'DM Serif Display',serif;font-size:20px}
+.article-card.featured .article-title{font-family:'Sigmar',cursive;font-size:20px}
 .coming-soon-strip{background:var(--mint);border:1px solid var(--leaf);border-radius:var(--radius);padding:20px 28px;display:flex;align-items:center;justify-content:space-between;margin-bottom:48px;flex-wrap:wrap;gap:16px}
 .cs-text h3{font-size:16px;font-weight:500;color:var(--forest);margin-bottom:4px}
-.cs-text p{font-size:13px;color:#0F6E56}
+.cs-text p{font-size:13px;color:#3ea32a}
 .email-form{display:flex;gap:8px}
-.email-form input{padding:9px 14px;border:1px solid var(--leaf);border-radius:7px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--ink);background:#fff;outline:none;width:240px}
-.email-form button{padding:9px 18px;background:var(--forest);color:#fff;border:none;border-radius:7px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
-.email-form button:hover{background:#0a2e20}
+.email-form input{padding:9px 14px;border:1px solid var(--leaf);border-radius:7px;font-family:'Exo',sans-serif;font-size:13px;color:var(--ink);background:#fff;outline:none;width:240px}
+.email-form button{padding:9px 18px;background:var(--forest);color:#fff;border:none;border-radius:7px;font-family:'Exo',sans-serif;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
+.email-form button:hover{background:#0d2620}
 .calc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:48px}
 .calc-card{background:var(--white);border:1px solid var(--line);border-radius:var(--radius);padding:20px;cursor:pointer;transition:border-color .15s}
 .calc-card:hover{border-color:var(--leaf)}
@@ -72,7 +78,7 @@ footer{background:var(--forest);padding:32px 40px;margin-top:40px}
 </head>
 <body>
 <div class="header">
-  <a href="/" class="logo">orb<span>ag</span></a>
+  <a href="/"><img src="/Orbag_logo-05.svg" alt="Orbag" style="height:28px;display:block"/></a>
   <div class="nav">
     <a href="/">Buyer analysis</a>
     <a href="/boer">Farmer analysis</a>
@@ -110,7 +116,7 @@ footer{background:var(--forest);padding:32px 40px;margin-top:40px}
   <div class="articles-grid" id="articlesGrid">
 
     <div class="article-card featured" data-topic="economics">
-      <div class="article-img" style="background:#E1F5EE">🌾</div>
+      <div class="article-img" style="background:#E8F7E3">🌾</div>
       <div class="article-body">
         <div class="article-meta">
           <span class="tag tag-economics">Farm economics</span>
@@ -194,7 +200,7 @@ footer{background:var(--forest);padding:32px 40px;margin-top:40px}
     </div>
 
     <div class="article-card" data-topic="soil">
-      <div class="article-img" style="background:#E1F5EE">🔬</div>
+      <div class="article-img" style="background:#E8F7E3">🔬</div>
       <div class="article-body">
         <div class="article-meta">
           <span class="tag tag-soil">Soil health</span>
@@ -288,7 +294,7 @@ function subscribe() {
   const email = document.getElementById('emailInput').value;
   if(!email || !email.includes('@')) { alert('Please enter a valid email address.'); return; }
   document.querySelector('.email-form button').textContent = '✓ Subscribed';
-  document.querySelector('.email-form button').style.background = '#1D9E75';
+  document.querySelector('.email-form button').style.background = '#56BC3E';
   document.getElementById('emailInput').value = '';
 }
 </script>

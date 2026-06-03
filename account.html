@@ -6,36 +6,36 @@
 <title>Orbag · Account</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Sigmar&family=Exo:wght@300;400;500;600&family=Sedgwick+Ave+Display&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{--forest:#0D3D2B;--leaf:#1D9E75;--mint:#E1F5EE;--ink:#0F1A14;--stone:#5A6862;--paper:#F7F5F0;--line:#D8D5CE;--white:#FFFFFF}
-body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);min-height:100vh;display:flex;flex-direction:column}
+:root{--forest:#14302B;--leaf:#56BC3E;--mint:#E8F7E3;--ink:#0F1A14;--stone:#5A6862;--paper:#F5F5D7;--line:#D8D5CE;--white:#FFFFFF}
+body{font-family:'Exo',sans-serif;background:var(--paper);color:var(--ink);min-height:100vh;display:flex;flex-direction:column}
 nav{background:var(--forest);padding:0 40px;display:flex;align-items:center;height:60px;gap:32px}
-.nav-logo{font-family:'DM Serif Display',serif;font-size:22px;color:#fff;text-decoration:none}
+.nav-logo{font-family:'Sigmar',cursive;font-size:22px;color:#fff;text-decoration:none}
 .nav-logo span{color:var(--leaf)}
 .wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:40px 20px}
 .card{background:var(--white);border:1px solid var(--line);border-radius:12px;padding:40px;width:100%;max-width:460px}
-.card-title{font-family:'DM Serif Display',serif;font-size:28px;color:var(--forest);margin-bottom:6px}
+.card-title{font-family:'Sigmar',cursive;font-size:28px;color:var(--forest);margin-bottom:6px}
 .card-sub{font-size:14px;color:var(--stone);margin-bottom:32px}
 .tabs{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;margin-bottom:28px}
 .tab{flex:1;padding:10px;font-size:13px;font-weight:600;background:var(--white);border:none;cursor:pointer;color:var(--stone);transition:all .15s}
 .tab.active{background:var(--forest);color:#fff}
 label{display:block;font-size:12px;font-weight:600;color:var(--stone);margin-bottom:6px;margin-top:16px;text-transform:uppercase;letter-spacing:.05em}
 label:first-of-type{margin-top:0}
-input,select{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:7px;font-family:'DM Sans',sans-serif;font-size:14px;color:var(--ink);background:var(--white);outline:none;transition:border .15s}
+input,select{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:7px;font-family:'Exo',sans-serif;font-size:14px;color:var(--ink);background:var(--white);outline:none;transition:border .15s}
 input:focus,select:focus{border-color:var(--leaf)}
 .role-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px}
 .role-btn{padding:14px;border:2px solid var(--line);border-radius:8px;background:var(--white);cursor:pointer;text-align:center;transition:all .15s}
 .role-btn.selected{border-color:var(--leaf);background:var(--mint)}
 .role-btn .icon{font-size:24px;margin-bottom:4px}
 .role-btn .label{font-size:13px;font-weight:600;color:var(--ink)}
-.btn-primary{width:100%;margin-top:24px;padding:13px;background:var(--leaf);color:#fff;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:background .15s}
-.btn-primary:hover{background:#178c64}
+.btn-primary{width:100%;margin-top:24px;padding:13px;background:var(--leaf);color:#fff;border:none;border-radius:8px;font-family:'Exo',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:background .15s}
+.btn-primary:hover{background:#3ea32a}
 .msg{margin-top:16px;padding:12px;border-radius:7px;font-size:13px;display:none}
 .msg.error{background:#FEE2E2;color:#991B1B;display:block}
-.msg.success{background:var(--mint);color:#065F46;display:block}
+.msg.success{background:var(--mint);color:#2d7a1e;display:block}
 .profile-wrap{max-width:600px;margin:0 auto;padding:40px 20px;width:100%}
-.profile-header{font-family:'DM Serif Display',serif;font-size:32px;color:var(--forest);margin-bottom:6px}
+.profile-header{font-family:'Sigmar',cursive;font-size:32px;color:var(--forest);margin-bottom:6px}
 .profile-sub{font-size:14px;color:var(--stone);margin-bottom:32px}
 .profile-card{background:var(--white);border:1px solid var(--line);border-radius:12px;padding:32px;margin-bottom:20px}
 .profile-section{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--leaf);margin-bottom:16px}
@@ -43,7 +43,7 @@ input:focus,select:focus{border-color:var(--leaf)}
 .crops-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:4px}
 .crop-check{padding:8px 10px;border:1px solid var(--line);border-radius:6px;font-size:12px;cursor:pointer;text-align:center;transition:all .15s;user-select:none}
 .crop-check.selected{border-color:var(--leaf);background:var(--mint);font-weight:600}
-.btn-ghost{padding:10px 20px;background:transparent;color:var(--stone);border:1px solid var(--line);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;transition:all .15s}
+.btn-ghost{padding:10px 20px;background:transparent;color:var(--stone);border:1px solid var(--line);border-radius:8px;font-family:'Exo',sans-serif;font-size:13px;cursor:pointer;transition:all .15s}
 .btn-ghost:hover{border-color:var(--stone)}
 .btn-row{display:flex;gap:12px;justify-content:flex-end;margin-top:8px}
 .role-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;margin-bottom:24px}
@@ -53,7 +53,7 @@ input:focus,select:focus{border-color:var(--leaf)}
 </head>
 <body>
 <nav>
-  <a class="nav-logo" href="/">orb<span>ag</span></a>
+  <a href="/"><img src="/Orbag_logo-05.svg" alt="Orbag" style="height:28px;display:block"/></a>
 </nav>
 
 <!-- Auth view -->
