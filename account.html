@@ -264,14 +264,16 @@ async function saveProfile() {
   const { data: { session } } = await sb.auth.getSession();
   if (!session) return;
 
-  const { error } = await sb.from('profiles').update({
+  const { error } = await sb.from('profiles').upsert({
+    id: session.user.id,
     name: document.getElementById('pName').value,
     company: document.getElementById('pCompany').value,
     region: document.getElementById('pRegion').value,
     hectares: parseFloat(document.getElementById('pHectares').value) || null,
     soil_type: document.getElementById('pSoil').value,
-    crops: selectedCrops
-  }).eq('id', session.user.id);
+    crops: selectedCrops,
+    role: 'farmer'
+  });
 
   if (error) return showMsg('profileMsg', 'Fout bij opslaan: ' + error.message, 'error');
   showMsg('profileMsg', 'Profiel opgeslagen ✓', 'success');
