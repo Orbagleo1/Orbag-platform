@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Orbag · Match</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--forest:#0D3D2B;--leaf:#1D9E75;--mint:#E1F5EE;--ink:#0F1A14;--stone:#5A6862;--paper:#F7F5F0;--line:#D8D5CE;--white:#FFFFFF;--red:#A32D2D;--red-l:#FCEBEB;--amber:#BA7517;--amber-l:#FAEEDA}
+body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);min-height:100vh;font-size:14px;line-height:1.6}
+.header{background:var(--forest);padding:0 40px;display:flex;align-items:center;height:60px;gap:32px;position:sticky;top:0;z-index:100}
+.logo{font-family:'DM Serif Display',serif;font-size:22px;color:#fff;text-decoration:none;flex-shrink:0}
+.logo span{color:var(--leaf)}
+.nav-links{display:flex;gap:4px;flex:1}
+.nav-links a{font-size:12px;color:rgba(255,255,255,.5);text-decoration:none;padding:6px 10px;border-radius:6px;transition:all .15s}
+.nav-links a:hover,.nav-links a.active{color:#fff;background:rgba(255,255,255,.08)}
+#navAuth{display:flex;align-items:center;gap:8px;margin-left:auto}
+.nav-cta{padding:7px 16px;color:#fff;border-radius:7px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;text-decoration:none;transition:background .15s;border:1px solid rgba(255,255,255,.25);background:transparent}
+.main{max-width:960px;margin:0 auto;padding:40px 24px}
+.page-title{font-family:'DM Serif Display',serif;font-size:36px;color:var(--forest);margin-bottom:6px}
+.page-sub{font-size:15px;color:var(--stone);margin-bottom:40px;max-width:560px;line-height:1.7}
+.empty{text-align:center;padding:80px 20px}
+.empty-icon{font-size:48px;margin-bottom:16px}
+.empty-title{font-family:'DM Serif Display',serif;font-size:22px;color:var(--forest);margin-bottom:8px}
+.empty-sub{font-size:14px;color:var(--stone);margin-bottom:24px;max-width:380px;margin-left:auto;margin-right:auto;line-height:1.6}
+.btn-primary{display:inline-flex;align-items:center;gap:8px;padding:12px 24px;background:var(--leaf);color:#fff;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;text-decoration:none;transition:background .15s}
+.btn-primary:hover{background:#178c64}
+.section-label{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--stone);margin-bottom:16px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+.match-grid{display:grid;gap:16px;margin-bottom:40px}
+.match-card{background:var(--white);border:1px solid var(--line);border-radius:12px;overflow:hidden;transition:box-shadow .15s}
+.match-card:hover{box-shadow:0 4px 20px rgba(13,61,43,.08)}
+.match-header{background:var(--forest);padding:18px 24px;display:flex;justify-content:space-between;align-items:center}
+.match-crop{font-family:'DM Serif Display',serif;font-size:20px;color:#fff}
+.match-meta{font-size:12px;color:rgba(255,255,255,.5);margin-top:2px}
+.match-verdict{padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em}
+.verdict-go{background:rgba(29,158,117,.25);color:#5DCAA5}
+.verdict-conditional{background:rgba(186,117,23,.25);color:#FAC775}
+.verdict-nogo{background:rgba(163,45,45,.25);color:#F09595}
+.match-body{padding:20px 24px}
+.match-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
+.stat{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:12px 14px}
+.stat-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--stone);margin-bottom:4px}
+.stat-val{font-family:'DM Serif Display',serif;font-size:20px;color:var(--forest)}
+.stat-sub{font-size:11px;color:var(--stone);margin-top:2px}
+.match-count-bar{background:var(--mint);border:1px solid var(--leaf);border-radius:8px;padding:14px 18px;margin-bottom:16px}
+.match-count-title{font-size:13px;font-weight:600;color:var(--forest);margin-bottom:4px}
+.match-count-sub{font-size:12px;color:#2D7A5E}
+.match-item{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:12px;align-items:center;padding:10px 14px;background:var(--paper);border:1px solid var(--line);border-radius:8px;font-size:13px;margin-bottom:8px}
+.match-item-name{font-weight:600;color:var(--ink)}
+.match-item-detail{color:var(--stone)}
+.match-item-tag{font-size:10px;font-weight:700;text-transform:uppercase;padding:3px 8px;border-radius:10px;background:var(--mint);color:var(--forest);text-align:center}
+.no-matches{font-size:13px;color:var(--stone);font-style:italic;padding:12px 0}
+.key-number{background:linear-gradient(135deg,var(--forest),#1a5c3f);border-radius:10px;padding:20px 24px;margin-top:16px;display:flex;justify-content:space-between;align-items:center;gap:20px}
+.key-number-label{font-size:12px;color:rgba(255,255,255,.6);margin-bottom:4px}
+.key-number-val{font-family:'DM Serif Display',serif;font-size:28px;color:#fff}
+.key-number-sub{font-size:12px;color:rgba(255,255,255,.5);margin-top:2px}
+.key-number-note{font-size:12px;color:rgba(255,255,255,.6);max-width:280px;text-align:right;line-height:1.5}
+.loading{text-align:center;padding:80px 20px;color:var(--stone)}
+.spinner{width:36px;height:36px;border:3px solid var(--mint);border-top-color:var(--leaf);border-radius:50%;margin:0 auto 16px;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <a href="/" class="logo">orb<span>ag</span></a>
+  <div class="nav-links" id="navLinks"></div>
+  <div id="navAuth"></div>
+</div>
+
+<div class="main">
+  <div class="page-title">Match</div>
+  <div class="page-sub">Where buyers and farmers find each other — based on crop, region, and the economics that make a deal work for both sides.</div>
+  <div id="matchContent">
+    <div class="loading"><div class="spinner"></div>Loading…</div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://wbysgkfsaoyaaatdgics.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndieXNna2ZzYW95YWFhdGRnaWNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMTYzMzcsImV4cCI6MjA5NTg5MjMzN30.-pz9gyBYvR_PLaKaeTXh-vttFGwiho71NfxNJEGXWns';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const CROP_LABELS = {green_beans:'Green beans',wheat:'Wheat',potatoes:'Potatoes',onions:'Onions',lentils:'Lentils',oats:'Oats',peas:'Peas',carrots:'Carrots'};
+const REGION_LABELS = {noord_groningen:'Noord-Groningen',groningen:'Groningen',friesland:'Friesland',drenthe:'Drenthe',flevoland:'Flevoland',zeeland:'Zeeland',brabant:'Brabant',noord_nederland:'Noord-Nederland',west_nederland:'West-Nederland',oost_nederland:'Oost-Nederland',no_preference:'Any region'};
+
+let currentUser = null;
+let currentProfile = null;
+
+function regionsOverlap(r1, r2) {
+  if (!r1 || !r2) return true;
+  if (r1 === 'no_preference' || r2 === 'no_preference') return true;
+  const noord = ['groningen','noord_groningen','friesland','drenthe','noord_nederland'];
+  if (noord.includes(r1) && noord.includes(r2)) return true;
+  return r1 === r2;
+}
+
+async function init() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { window.location.href = '/account'; return; }
+  currentUser = session.user;
+
+  const { data: p } = await sb.from('profiles').select('*').eq('id', currentUser.id).single();
+  currentProfile = p;
+
+  document.getElementById('navAuth').innerHTML = `
+    <span style="font-size:12px;color:rgba(255,255,255,.6)">${p?.name || session.user.email}</span>
+    <a href="/account" class="nav-cta">My account</a>
+  `;
+
+  if (p?.role === 'farmer') {
+    document.getElementById('navLinks').innerHTML = `
+      <a href="/boer">My businesscase</a>
+      <a href="/kennis">Knowledge</a>
+      <a href="/zaden">Inputs</a>
+      <a href="/match" class="active">Matches</a>
+    `;
+    loadFarmerMatches();
+  } else {
+    document.getElementById('navLinks').innerHTML = `
+      <a href="/analyse">My businesscase</a>
+      <a href="/match" class="active">Matches</a>
+    `;
+    loadBuyerMatches();
+  }
+}
+
+async function loadBuyerMatches() {
+  const container = document.getElementById('matchContent');
+  container.innerHTML = '<div class="loading"><div class="spinner"></div>Finding your matches…</div>';
+
+  const { data: buyerBCs } = await sb.from('buyer_bcs').select('*').eq('user_id', currentUser.id).order('created_at', {ascending: false});
+
+  if (!buyerBCs || buyerBCs.length === 0) {
+    container.innerHTML = `
+      <div class="empty">
+        <div class="empty-icon">🏭</div>
+        <div class="empty-title">No businesscases yet</div>
+        <div class="empty-sub">Generate a buyer businesscase first. The match engine will then find farmers who can supply your crop.</div>
+        <a href="/analyse" class="btn-primary">Generate buyer BC →</a>
+      </div>`;
+    return;
+  }
+
+  const { data: farmerProfiles } = await sb.from('profiles').select('*').eq('role', 'farmer');
+
+  let html = '<div class="section-label">Your supply requirements & matched farmers</div><div class="match-grid">';
+
+  for (const bc of buyerBCs) {
+    const cropLabel = CROP_LABELS[bc.crop] || bc.crop;
+    const regionLabel = REGION_LABELS[bc.region] || bc.region;
+
+    const matchedProfiles = (farmerProfiles || []).filter(fp => {
+      return (fp.crops || []).includes(bc.crop) && regionsOverlap(fp.region, bc.region);
+    });
+
+    const totalMatches = matchedProfiles.length;
+    const verdictClass = bc.verdict === 'GO' ? 'verdict-go' : bc.verdict === 'NO_GO' ? 'verdict-nogo' : 'verdict-conditional';
+    const verdictLabel = bc.verdict === 'GO' ? '✓ GO' : bc.verdict === 'NO_GO' ? '✗ No go' : '~ Conditional';
+
+    html += `
+    <div class="match-card">
+      <div class="match-header">
+        <div>
+          <div class="match-crop">${cropLabel} · ${bc.volume}t/yr</div>
+          <div class="match-meta">${regionLabel} · ${bc.sector || '—'} · ${new Date(bc.created_at).toLocaleDateString('nl-NL')}</div>
+        </div>
+        <div class="match-verdict ${verdictClass}">${verdictLabel}</div>
+      </div>
+      <div class="match-body">
+        <div class="match-stats">
+          <div class="stat"><div class="stat-label">Net value</div><div class="stat-val">€${Math.round(bc.net_value||0).toLocaleString()}</div><div class="stat-sub">per year</div></div>
+          <div class="stat"><div class="stat-label">Risk reduction</div><div class="stat-val">€${Math.round(bc.risk_reduction||0).toLocaleString()}</div><div class="stat-sub">per year</div></div>
+          <div class="stat"><div class="stat-label">Feasibility</div><div class="stat-val">${bc.feasibility||'—'}%</div><div class="stat-sub">supply confidence</div></div>
+        </div>
+        <div class="match-count-bar">
+          <div class="match-count-title">🌱 ${totalMatches} farmer${totalMatches!==1?'s':''} match${totalMatches===1?'es':''} your requirement</div>
+          <div class="match-count-sub">${cropLabel} · ${regionLabel} · registered on Orbag</div>
+        </div>
+        ${totalMatches > 0 ? matchedProfiles.slice(0,5).map(fp => `
+          <div class="match-item">
+            <div class="match-item-name">🌱 ${fp.name||'Farm'}</div>
+            <div class="match-item-detail">${REGION_LABELS[fp.region]||fp.region||'—'} · ${fp.hectares||'?'}ha</div>
+            <div class="match-item-detail">${(fp.crops||[]).map(c=>CROP_LABELS[c]||c).join(', ')}</div>
+            <div class="match-item-tag">${fp.soil_type||'klei'}</div>
+          </div>`).join('') + (totalMatches>5?`<div class="no-matches">+ ${totalMatches-5} more farmers</div>`:'')
+        : '<div class="no-matches">No registered farmers match yet — share Orbag with farmers in your region.</div>'}
+        ${bc.justifiable_farm_price ? `
+        <div class="key-number">
+          <div>
+            <div class="key-number-label">Justifiable farm gate price</div>
+            <div class="key-number-val">€${Math.round(bc.justifiable_farm_price).toLocaleString()}/t</div>
+            <div class="key-number-sub">what your chain economics can support</div>
+          </div>
+          <div class="key-number-note">This is the maximum farm gate price you can pay for regen ${cropLabel} while still improving your own margin. Consumer price unchanged.</div>
+        </div>` : ''}
+      </div>
+    </div>`;
+  }
+
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+async function loadFarmerMatches() {
+  const container = document.getElementById('matchContent');
+  container.innerHTML = '<div class="loading"><div class="spinner"></div>Finding your matches…</div>';
+
+  if (!currentProfile?.crops?.length) {
+    container.innerHTML = `
+      <div class="empty">
+        <div class="empty-icon">🌱</div>
+        <div class="empty-title">Complete your profile first</div>
+        <div class="empty-sub">Add your crops and region to your profile so the match engine can find buyers looking for your product.</div>
+        <a href="/account" class="btn-primary">Complete profile →</a>
+      </div>`;
+    return;
+  }
+
+  const { data: buyerBCs } = await sb.from('buyer_bcs').select('*').order('created_at', {ascending: false});
+
+  const matches = (buyerBCs||[]).filter(bc =>
+    currentProfile.crops.includes(bc.crop) && regionsOverlap(currentProfile.region, bc.region)
+  );
+
+  if (matches.length === 0) {
+    container.innerHTML = `
+      <div class="empty">
+        <div class="empty-icon">🔍</div>
+        <div class="empty-title">No buyer matches yet</div>
+        <div class="empty-sub">No buyers have generated a businesscase for your crops in your region yet. This will grow as more buyers join Orbag.</div>
+        <a href="/boer" class="btn-primary">Generate your farm BC →</a>
+      </div>`;
+    return;
+  }
+
+  let html = '<div class="section-label">Buyers looking for your crops</div><div class="match-grid">';
+
+  for (const bc of matches) {
+    const cropLabel = CROP_LABELS[bc.crop]||bc.crop;
+    const regionLabel = REGION_LABELS[bc.region]||bc.region;
+    const verdictClass = bc.verdict==='GO'?'verdict-go':bc.verdict==='NO_GO'?'verdict-nogo':'verdict-conditional';
+    const verdictLabel = bc.verdict==='GO'?'✓ GO':bc.verdict==='NO_GO'?'✗ No go':'~ Conditional';
+
+    html += `
+    <div class="match-card">
+      <div class="match-header">
+        <div>
+          <div class="match-crop">🏭 ${bc.company||'Buyer'}</div>
+          <div class="match-meta">${cropLabel} · ${bc.volume}t/yr · ${regionLabel}</div>
+        </div>
+        <div class="match-verdict ${verdictClass}">${verdictLabel}</div>
+      </div>
+      <div class="match-body">
+        <div class="match-stats">
+          <div class="stat"><div class="stat-label">Volume needed</div><div class="stat-val">${bc.volume}t</div><div class="stat-sub">per year</div></div>
+          <div class="stat"><div class="stat-label">Current price</div><div class="stat-val">€${bc.current_price}</div><div class="stat-sub">per tonne</div></div>
+          <div class="stat"><div class="stat-label">Sector</div><div class="stat-val" style="font-size:14px;padding-top:4px">${bc.sector||'—'}</div><div class="stat-sub">&nbsp;</div></div>
+        </div>
+        ${bc.justifiable_farm_price ? `
+        <div class="key-number">
+          <div>
+            <div class="key-number-label">They can afford to pay you</div>
+            <div class="key-number-val">€${Math.round(bc.justifiable_farm_price).toLocaleString()}/t</div>
+            <div class="key-number-sub">farm gate price their chain economics support</div>
+          </div>
+          <div class="key-number-note">This buyer's supply chain savings from regen quality justify paying €${Math.round(bc.justifiable_farm_price).toLocaleString()}/t — without raising consumer prices.</div>
+        </div>` : ''}
+      </div>
+    </div>`;
+  }
+
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+init();
+</script>
+</body>
+</html>
