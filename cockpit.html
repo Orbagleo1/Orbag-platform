@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Orbag Cockpit</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sigmar&family=Exo:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --green-deep: #14302B;
+      --green-forest: #143632;
+      --green-fresh: #56BC3E;
+      --creme: #F5F5D7;
+      --sand: #E2E0B0;
+      --magenta: #E44796;
+      --text-main: #14302B;
+      --text-muted: #4a6b5e;
+      --border: rgba(20,54,43,0.12);
+      --card-bg: #ffffff;
+      --page-bg: #F5F5D7;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Exo', sans-serif;
+      background: var(--page-bg);
+      color: var(--text-main);
+      min-height: 100vh;
+    }
+
+    /* ── HEADER ── */
+    header {
+      background: var(--green-deep);
+      color: var(--creme);
+      padding: 0 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 56px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .header-left { display: flex; align-items: center; gap: 1rem; }
+    .logo-text { font-family: 'Sigmar', serif; font-size: 1.4rem; color: var(--green-fresh); letter-spacing: 0.02em; }
+    .header-sub { font-size: 0.75rem; color: rgba(245,245,215,0.5); font-weight: 300; letter-spacing: 0.08em; text-transform: uppercase; }
+    .header-right { display: flex; align-items: center; gap: 1rem; }
+    .last-updated { font-size: 0.72rem; color: rgba(245,245,215,0.45); }
+    .refresh-btn {
+      background: rgba(86,188,62,0.15);
+      border: 1px solid rgba(86,188,62,0.3);
+      color: var(--green-fresh);
+      padding: 0.3rem 0.9rem;
+      border-radius: 4px;
+      font-family: 'Exo', sans-serif;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .refresh-btn:hover { background: rgba(86,188,62,0.28); }
+
+    /* ── MAIN LAYOUT ── */
+    main { padding: 1.5rem 2rem 3rem; max-width: 1400px; margin: 0 auto; }
+
+    /* ── HEALTH STRIP ── */
+    .health-strip {
+      display: flex;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+    }
+    .health-pill {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 0.35rem 0.9rem;
+      font-size: 0.78rem;
+      font-weight: 500;
+    }
+    .health-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .dot-green { background: #3dbd2a; box-shadow: 0 0 6px rgba(61,189,42,0.5); }
+    .dot-yellow { background: #f0b429; }
+    .dot-red { background: #e44444; }
+    .dot-gray { background: #aaa; }
+
+    /* ── SECTION TITLE ── */
+    .section-title {
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--text-muted);
+      margin-bottom: 0.75rem;
+      margin-top: 1.75rem;
+    }
+
+    /* ── METRIC ROW ── */
+    .metrics-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 0.75rem;
+      margin-bottom: 0.5rem;
+    }
+    .metric-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem 1.1rem 0.9rem;
+    }
+    .metric-label { font-size: 0.7rem; color: var(--text-muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.35rem; }
+    .metric-value { font-size: 1.7rem; font-weight: 700; color: var(--green-deep); line-height: 1; }
+    .metric-value.accent { color: var(--green-fresh); }
+    .metric-sub { font-size: 0.68rem; color: var(--text-muted); margin-top: 0.25rem; }
+
+    /* ── GRID 2-COL ── */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.75rem; }
+
+    /* ── TABLE CARD ── */
+    .table-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .table-card-header {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .table-card-header .count-badge {
+      background: var(--sand);
+      border-radius: 10px;
+      padding: 0.1rem 0.5rem;
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+    table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
+    th {
+      text-align: left;
+      padding: 0.5rem 1rem;
+      font-size: 0.65rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+      background: rgba(245,245,215,0.6);
+    }
+    td {
+      padding: 0.55rem 1rem;
+      border-bottom: 1px solid rgba(20,54,43,0.06);
+      vertical-align: middle;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(245,245,215,0.5); }
+
+    /* ── VERDICT BADGE ── */
+    .verdict { display: inline-flex; align-items: center; gap: 4px; border-radius: 4px; padding: 2px 7px; font-size: 0.7rem; font-weight: 700; }
+    .verdict-go { background: rgba(86,188,62,0.15); color: #267a10; }
+    .verdict-no { background: rgba(228,71,150,0.12); color: #b8185e; }
+    .verdict-cond { background: rgba(240,180,41,0.15); color: #7a5500; }
+
+    /* ── SIGNAL CARD ── */
+    .signal-row { display: flex; align-items: flex-start; gap: 0.75rem; padding: 0.65rem 1rem; border-bottom: 1px solid rgba(20,54,43,0.06); }
+    .signal-row:last-child { border-bottom: none; }
+    .signal-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: 1px; }
+    .signal-body { flex: 1; min-width: 0; }
+    .signal-title { font-size: 0.78rem; font-weight: 600; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .signal-meta { font-size: 0.68rem; color: var(--text-muted); margin-top: 2px; }
+    .signal-impact { font-size: 0.78rem; font-weight: 700; color: var(--green-deep); white-space: nowrap; }
+    .signal-impact.neg { color: var(--magenta); }
+
+    /* ── PROCESS ROW ── */
+    .process-row { display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem 1rem; border-bottom: 1px solid rgba(20,54,43,0.06); }
+    .process-row:last-child { border-bottom: none; }
+    .process-name { font-size: 0.78rem; font-weight: 600; flex: 1; }
+    .process-type { font-size: 0.65rem; color: var(--text-muted); font-weight: 400; }
+    .process-schedule { font-size: 0.68rem; color: var(--text-muted); white-space: nowrap; }
+    .process-status { font-size: 0.75rem; white-space: nowrap; }
+
+    /* ── WATCHLIST ── */
+    .watchlist-row { display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem 1rem; border-bottom: 1px solid rgba(20,54,43,0.06); }
+    .watchlist-row:last-child { border-bottom: none; }
+    .country-name { font-size: 0.82rem; font-weight: 600; flex: 1; }
+    .risk-bar-wrap { width: 80px; background: rgba(20,54,43,0.08); border-radius: 3px; height: 5px; }
+    .risk-bar { height: 5px; border-radius: 3px; background: var(--green-fresh); }
+    .risk-bar.high { background: var(--magenta); }
+    .risk-score-label { font-size: 0.7rem; font-weight: 700; color: var(--text-muted); width: 28px; text-align: right; }
+
+    /* ── BENCHMARK ROW ── */
+    .bench-row { display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 1rem; border-bottom: 1px solid rgba(20,54,43,0.06); font-size: 0.78rem; }
+    .bench-row:last-child { border-bottom: none; }
+    .bench-key { color: var(--text-muted); font-weight: 400; }
+    .bench-val { font-weight: 600; color: var(--text-main); }
+
+    /* ── PITCH BOX ── */
+    .pitch-box {
+      background: var(--green-deep);
+      color: var(--creme);
+      border-radius: 8px;
+      padding: 1.25rem 1.5rem;
+      font-size: 0.82rem;
+      line-height: 1.65;
+      font-style: italic;
+      opacity: 0.92;
+    }
+
+    /* ── LOADING / ERROR ── */
+    .loading-state {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 200px;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      gap: 0.75rem;
+    }
+    .spinner {
+      width: 18px; height: 18px;
+      border: 2px solid var(--border);
+      border-top-color: var(--green-fresh);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .error-msg { color: var(--magenta); font-size: 0.82rem; padding: 1rem; text-align: center; }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 900px) {
+      .grid-2, .grid-3 { grid-template-columns: 1fr; }
+      main { padding: 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <span class="logo-text">Orbag</span>
+    <span class="header-sub">Cockpit</span>
+  </div>
+  <div class="header-right">
+    <span class="last-updated" id="lastUpdated">laden…</span>
+    <button class="refresh-btn" onclick="loadData()">↻ Ververs</button>
+  </div>
+</header>
+
+<main>
+  <!-- Health strip -->
+  <div class="health-strip" id="healthStrip">
+    <div class="loading-state"><div class="spinner"></div> Systeem ophalen…</div>
+  </div>
+
+  <!-- Metrics -->
+  <div class="section-title">Platform overzicht</div>
+  <div class="metrics-row" id="metricsRow">
+    <div class="metric-card"><div class="metric-label">Rapporten</div><div class="metric-value">—</div></div>
+    <div class="metric-card"><div class="metric-label">Buyers</div><div class="metric-value">—</div></div>
+    <div class="metric-card"><div class="metric-label">Boeren</div><div class="metric-value">—</div></div>
+    <div class="metric-card"><div class="metric-label">Volume (ton)</div><div class="metric-value">—</div></div>
+    <div class="metric-card"><div class="metric-label">GO-ratio</div><div class="metric-value accent">—</div></div>
+  </div>
+
+  <!-- Reports + Signals -->
+  <div class="section-title">Recente activiteit</div>
+  <div class="grid-2">
+    <div class="table-card" id="reportsCard">
+      <div class="table-card-header">Laatste rapporten <span class="count-badge" id="reportCount">0</span></div>
+      <div class="loading-state"><div class="spinner"></div></div>
+    </div>
+    <div class="table-card" id="signalsCard">
+      <div class="table-card-header">Supply chain signalen <span class="count-badge" id="signalCount">0</span></div>
+      <div class="loading-state"><div class="spinner"></div></div>
+    </div>
+  </div>
+
+  <!-- Watchlist + Benchmarks -->
+  <div class="section-title">Risico & benchmarks</div>
+  <div class="grid-2">
+    <div class="table-card" id="watchlistCard">
+      <div class="table-card-header">Watchlist landen</div>
+      <div class="loading-state"><div class="spinner"></div></div>
+    </div>
+    <div class="table-card" id="benchmarksCard">
+      <div class="table-card-header">KWIN benchmarks actief</div>
+      <div class="loading-state"><div class="spinner"></div></div>
+    </div>
+  </div>
+
+  <!-- Processes -->
+  <div class="section-title">Geautomatiseerde processen</div>
+  <div class="table-card" id="processesCard">
+    <div class="loading-state"><div class="spinner"></div></div>
+  </div>
+
+  <!-- Pitch -->
+  <div class="section-title">Pitchline (live)</div>
+  <div class="pitch-box" id="pitchBox">Laden…</div>
+
+</main>
+
+<script>
+const ENDPOINT = 'https://wbysgkfsaoyaaatdgics.supabase.co/functions/v1/dashboard-data?key=orbag-leo-2026-dashboard';
+
+async function loadData() {
+  document.getElementById('lastUpdated').textContent = 'laden…';
+  try {
+    const res = await fetch(ENDPOINT);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const d = await res.json();
+    render(d);
+    document.getElementById('lastUpdated').textContent = 'bijgewerkt ' + shortDate(new Date().toISOString());
+  } catch (e) {
+    document.getElementById('healthStrip').innerHTML = '<div class="error-msg">⚠ Kon cockpit-data niet laden: ' + e.message + '</div>';
+  }
+}
+
+function render(d) {
+  renderHealth(d.health);
+  renderMetrics(d.public_metrics, d.recent_reports);
+  renderReports(d.recent_reports);
+  renderSignals(d.recent_signals, d.pending_signals);
+  renderWatchlist(d.watchlist);
+  renderBenchmarks(d.benchmarks, d.signal_types);
+  renderProcesses(d.processes);
+  renderPitch(d);
+}
+
+// ── HEALTH
+function renderHealth(health) {
+  if (!health) { document.getElementById('healthStrip').innerHTML = '<div class="error-msg">Geen health data</div>'; return; }
+  const pills = Object.entries(health).map(([k, v]) => {
+    const ok = v === true || v === 'ok' || v === 'active' || v === 'scheduled' || (typeof v === 'number' && v > 0);
+    const cls = ok ? 'dot-green' : 'dot-red';
+    const label = prettyKey(k);
+    return `<div class="health-pill"><div class="health-dot ${cls}"></div>${label}</div>`;
+  }).join('');
+  document.getElementById('healthStrip').innerHTML = pills;
+}
+
+// ── METRICS
+function renderMetrics(m, reports) {
+  if (!m && !reports) return;
+  const total = m?.total_reports || reports?.length || 0;
+  const buyers = m?.total_buyers || '—';
+  const farmers = m?.total_farmers || '—';
+  const volume = m?.total_volume_ton ? Number(m.total_volume_ton).toLocaleString('nl-NL') : '—';
+  const goCount = reports ? reports.filter(r => r.verdict === 'GO').length : 0;
+  const goRatio = reports && reports.length ? Math.round(goCount / reports.length * 100) + '%' : '—';
+
+  document.getElementById('metricsRow').innerHTML = `
+    <div class="metric-card"><div class="metric-label">Rapporten</div><div class="metric-value">${total}</div><div class="metric-sub">totaal gegenereerd</div></div>
+    <div class="metric-card"><div class="metric-label">Buyers</div><div class="metric-value">${buyers}</div><div class="metric-sub">unieke afnemers</div></div>
+    <div class="metric-card"><div class="metric-label">Boeren</div><div class="metric-value">${farmers}</div><div class="metric-sub">geregistreerd</div></div>
+    <div class="metric-card"><div class="metric-label">Volume</div><div class="metric-value">${volume}</div><div class="metric-sub">ton geanalyseerd</div></div>
+    <div class="metric-card"><div class="metric-label">GO-ratio</div><div class="metric-value accent">${goRatio}</div><div class="metric-sub">positief advies</div></div>
+  `;
+}
+
+// ── REPORTS
+function renderReports(reports) {
+  const card = document.getElementById('reportsCard');
+  document.getElementById('reportCount').textContent = reports?.length || 0;
+  if (!reports || !reports.length) { card.querySelector('.loading-state, .error-msg, table')?.remove(); card.insertAdjacentHTML('beforeend', '<div class="error-msg">Geen rapporten</div>'); return; }
+
+  const rows = reports.slice(0, 8).map(r => {
+    const vc = r.verdict === 'GO' ? 'verdict-go' : r.verdict === 'NO_GO' ? 'verdict-no' : 'verdict-cond';
+    const net = r.net_value != null ? '€' + Number(r.net_value).toLocaleString('nl-NL') : '—';
+    return `<tr>
+      <td>${r.crop || '—'}</td>
+      <td>${r.region || '—'}</td>
+      <td><span class="verdict ${vc}">${r.verdict || '—'}</span></td>
+      <td style="text-align:right;font-weight:600">${net}</td>
+      <td style="color:var(--text-muted)">${shortDate(r.created_at)}</td>
+    </tr>`;
+  }).join('');
+
+  card.innerHTML = `
+    <div class="table-card-header">Laatste rapporten <span class="count-badge">${reports.length}</span></div>
+    <table>
+      <thead><tr><th>Gewas</th><th>Regio</th><th>Verdict</th><th style="text-align:right">Net value</th><th>Datum</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+// ── SIGNALS
+function renderSignals(signals, pending) {
+  const card = document.getElementById('signalsCard');
+  const all = [...(pending || []), ...(signals || [])].slice(0, 8);
+  document.getElementById('signalCount').textContent = all.length;
+
+  if (!all.length) {
+    card.innerHTML = '<div class="table-card-header">Supply chain signalen <span class="count-badge">0</span></div><div class="error-msg">Geen signalen</div>';
+    return;
+  }
+
+  const rows = all.map(s => {
+    const impact = s.eur_impact_per_ton != null ? (s.eur_impact_per_ton > 0 ? '+' : '') + '€' + Number(s.eur_impact_per_ton).toFixed(1) + '/t' : '';
+    const neg = s.eur_impact_per_ton < 0;
+    const icon = prettySignalIcon(s.signal_type || s.type);
+    return `<div class="signal-row">
+      <div class="signal-icon">${icon}</div>
+      <div class="signal-body">
+        <div class="signal-title">${s.title || s.description || prettyKey(s.signal_type || '')}</div>
+        <div class="signal-meta">${prettyCountry(s.country_key || s.country || '')} · ${shortDate(s.created_at || s.valid_from)}</div>
+      </div>
+      ${impact ? `<div class="signal-impact${neg ? ' neg' : ''}">${impact}</div>` : ''}
+    </div>`;
+  }).join('');
+
+  card.innerHTML = `<div class="table-card-header">Supply chain signalen <span class="count-badge">${all.length}</span></div>${rows}`;
+}
+
+// ── WATCHLIST
+function renderWatchlist(watchlist) {
+  const card = document.getElementById('watchlistCard');
+  if (!watchlist || !watchlist.length) {
+    card.innerHTML = '<div class="table-card-header">Watchlist landen</div><div class="error-msg">Geen landen</div>';
+    return;
+  }
+  const rows = watchlist.map(w => {
+    const score = w.risk_score || 0;
+    const high = score >= 0.6;
+    return `<div class="watchlist-row">
+      <div class="country-name">${prettyCountry(w.country_key)}</div>
+      <div class="risk-bar-wrap"><div class="risk-bar${high ? ' high' : ''}" style="width:${Math.round(score*100)}%"></div></div>
+      <div class="risk-score-label">${Math.round(score*100)}</div>
+      <span style="font-size:0.7rem;color:var(--text-muted)">${w.active_signals || 0} sig.</span>
+    </div>`;
+  }).join('');
+  card.innerHTML = `<div class="table-card-header">Watchlist landen</div>${rows}`;
+}
+
+// ── BENCHMARKS
+function renderBenchmarks(benchmarks, signalTypes) {
+  const card = document.getElementById('benchmarksCard');
+  const items = benchmarks || signalTypes || [];
+  if (!items.length) {
+    card.innerHTML = '<div class="table-card-header">KWIN benchmarks actief</div><div class="error-msg">Geen benchmarks</div>';
+    return;
+  }
+  const rows = items.slice(0, 10).map(b => {
+    const val = formatBenchmark(b);
+    return `<div class="bench-row"><span class="bench-key">${b.label || prettyKey(b.signal_type || b.name || '')}</span><span class="bench-val">${val}</span></div>`;
+  }).join('');
+  card.innerHTML = `<div class="table-card-header">KWIN benchmarks actief</div>${rows}`;
+}
+
+// ── PROCESSES
+function renderProcesses(processes) {
+  const card = document.getElementById('processesCard');
+  if (!processes || !processes.length) {
+    card.innerHTML = '<div class="error-msg">Geen procesdata</div>';
+    return;
+  }
+  const rows = processes.map(p => `
+    <div class="process-row">
+      <div style="flex:1;min-width:0">
+        <div class="process-name">${p.name} <span class="process-type">(${p.type})</span></div>
+        <div style="font-size:0.68rem;color:var(--text-muted);margin-top:2px">${p.description || ''}</div>
+      </div>
+      <div class="process-schedule">${p.schedule || ''}</div>
+      <div class="process-status">${p.status || ''}</div>
+    </div>`).join('');
+  card.innerHTML = rows;
+}
+
+// ── PITCH
+function renderPitch(d) {
+  const reports = d.recent_reports || [];
+  const goCount = reports.filter(r => r.verdict === 'GO').length;
+  const vol = d.public_metrics?.total_volume_ton ? Number(d.public_metrics.total_volume_ton).toLocaleString('nl-NL') + ' ton' : 'duizenden tonnen';
+  const text = `Orbag heeft ${reports.length} businesscases gegenereerd voor ${vol} agrovolume — waarvan ${goCount} een positief GO-advies kregen. Elke analyse kwantificeert de maximale meerprijs die een afnemer een boer kan betalen op basis van ketenbesparingen, zonder de eigen marge te raken.`;
+  document.getElementById('pitchBox').textContent = text;
+}
+
+// ── HELPERS
+function shortDate(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return d.toLocaleString('nl-NL', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+}
+function prettyCountry(k) {
+  const map = { morocco_egypt: 'Marokko/Egypte', turkey_spain: 'Turkije/Spanje', netherlands: 'Nederland', mixed_eu: 'EU mix', mixed_global: 'Globaal' };
+  return map[k] || k;
+}
+function prettySignalIcon(t) {
+  const m = { fx_risk: '💱', weather_forecast: '🌤', weather_risk: '🌧', geopolitical_risk: '⚠️', logistics_cost: '🚢', quality_recall: '🔴', price_volatility: '📊' };
+  return m[t] || '📡';
+}
+function prettyKey(k) {
+  return String(k).replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+function formatBenchmark(b) {
+  const val = Number(b.current_value ?? b.value ?? 0);
+  if (b.unit === 'pct') return (val * 100).toFixed(1) + '%';
+  if (b.unit === 'eur_per_ton') return '€' + val + '/t';
+  if (b.unit === 'rate') return val.toFixed(4);
+  return val.toLocaleString('nl-NL');
+}
+
+// Init
+loadData();
+</script>
+</body>
+</html>
