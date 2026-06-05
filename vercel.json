@@ -9,6 +9,8 @@
     { "src": "/zaden", "dest": "/zaden.html" },
     { "src": "/analyse", "dest": "/analyse.html" },
     { "src": "/cockpit", "dest": "/cockpit.html" },
+    { "src": "/account", "dest": "/account.html" },
+    { "src": "/match", "dest": "/match.html" },
     { "src": "/api/(.*)", "dest": "/api/$1" },
     { "src": "/(.*)", "dest": "/$1" }
   ]
