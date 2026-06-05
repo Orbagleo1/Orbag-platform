@@ -321,7 +321,7 @@ const _SB = supabase.createClient(
 window._orbagUserId = null;
 (async () => {
   const { data: { session } } = await _SB.auth.getSession();
-  if (!session) { window.location.href = '/account'; return; }
+  if (!session) { window.location.href = '/account?next=/analyse'; return; }
   // Role check — buyers only
   const { data: p } = await _SB.from('profiles').select('name,role,company,sector').eq('id', session.user.id).single();
   if (p && p.role === 'farmer') { window.location.href = '/boer'; return; }
