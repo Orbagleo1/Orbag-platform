@@ -53,138 +53,136 @@ input:focus,select:focus{border-color:var(--leaf)}
 </head>
 <body>
 <nav>
-  <a href="/"><img src="/Orbag_logo-05.svg" alt="Orbag" style="height:28px;display:block"/></a>
+<a href="/"><img src="/Orbag_logo-05.svg" alt="Orbag" style="height:28px;display:block"/></a>
 </nav>
 
 <!-- Auth view -->
 <div id="authView" class="wrap" style="display:none">
-  <div class="card">
-    <div class="card-title">Welkom bij Orbag</div>
-    <div class="card-sub">Log in of maak een account aan</div>
-    <div class="tabs">
-      <button class="tab active" onclick="switchTab('login')">Inloggen</button>
-      <button class="tab" onclick="switchTab('register')">Registreren</button>
-    </div>
-
-    <div id="loginForm">
-      <label>E-mailadres</label>
-      <input type="email" id="loginEmail" placeholder="jouw@email.nl"/>
-      <label>Wachtwoord</label>
-      <input type="password" id="loginPassword" placeholder="••••••••"/>
-      <button class="btn-primary" onclick="login()">Inloggen</button>
-    </div>
-
-    <div id="registerForm" style="display:none">
-      <label>Ik ben een</label>
-      <div class="role-grid">
-        <div class="role-btn selected" id="roleBoer" onclick="selectRole('farmer')">
-          <div class="icon">🌱</div>
-          <div class="label">Boer / teler</div>
-        </div>
-        <div class="role-btn" id="roleKoper" onclick="selectRole('buyer')">
-          <div class="icon">🏭</div>
-          <div class="label">Koper / afnemer</div>
-        </div>
-      </div>
-      <label>Naam</label>
-      <input type="text" id="regName" placeholder="Jouw naam"/>
-      <label>Bedrijfsnaam</label>
-      <input type="text" id="regCompany" placeholder="Bedrijfsnaam"/>
-      <label>E-mailadres</label>
-      <input type="email" id="regEmail" placeholder="jouw@email.nl"/>
-      <label>Wachtwoord</label>
-      <input type="password" id="regPassword" placeholder="Minimaal 8 tekens"/>
-      <button class="btn-primary" onclick="register()">Account aanmaken</button>
-    </div>
-
-    <div class="msg" id="authMsg"></div>
-  </div>
+<div class="card">
+<div class="card-title">Welkom bij Orbag</div>
+<div class="card-sub">Log in of maak een account aan</div>
+<div class="tabs">
+<button class="tab active" onclick="switchTab('login')">Inloggen</button>
+<button class="tab" onclick="switchTab('register')">Registreren</button>
 </div>
 
-<!-- Profile view — shown after login -->
+<div id="loginForm">
+<label>E-mailadres</label>
+<input type="email" id="loginEmail" placeholder="jouw@email.nl"/>
+<label>Wachtwoord</label>
+<input type="password" id="loginPassword" placeholder="••••••••"/>
+<button class="btn-primary" onclick="login()">Inloggen</button>
+</div>
+
+<div id="registerForm" style="display:none">
+<label>Ik ben een</label>
+<div class="role-grid">
+<div class="role-btn selected" id="roleBoer" onclick="selectRole('farmer')">
+<div class="icon">🌱</div>
+<div class="label">Boer / teler</div>
+</div>
+<div class="role-btn" id="roleKoper" onclick="selectRole('buyer')">
+<div class="icon">🏭</div>
+<div class="label">Koper / afnemer</div>
+</div>
+</div>
+<label>Naam</label>
+<input type="text" id="regName" placeholder="Jouw naam"/>
+<label>Bedrijfsnaam</label>
+<input type="text" id="regCompany" placeholder="Bedrijfsnaam"/>
+<label>E-mailadres</label>
+<input type="email" id="regEmail" placeholder="jouw@email.nl"/>
+<label>Wachtwoord</label>
+<input type="password" id="regPassword" placeholder="Minimaal 8 tekens"/>
+<button class="btn-primary" onclick="register()">Account aanmaken</button>
+</div>
+
+<div class="msg" id="authMsg"></div>
+</div>
+</div>
+
+<!-- Profile view -->
 <div id="profileView" style="display:none">
-  <div class="profile-wrap">
-    <div class="profile-header" id="profileName">Mijn profiel</div>
-    <div id="roleBadge"></div>
+<div class="profile-wrap">
+<div class="profile-header" id="profileName">Mijn profiel</div>
+<div id="roleBadge"></div>
 
-    <!-- Shared fields -->
-    <div class="profile-card">
-      <div class="profile-section">Bedrijfsgegevens</div>
-      <div class="field-grid">
-        <div>
-          <label>Naam</label>
-          <input type="text" id="pName"/>
-        </div>
-        <div>
-          <label>Bedrijf</label>
-          <input type="text" id="pCompany"/>
-        </div>
-        <div>
-          <label>Regio</label>
-          <select id="pRegion">
-            <option value="">Selecteer regio</option>
-            <option value="noord_groningen">Noord-Groningen</option>
-            <option value="groningen">Groningen</option>
-            <option value="friesland">Friesland</option>
-            <option value="drenthe">Drenthe</option>
-            <option value="flevoland">Flevoland</option>
-            <option value="zeeland">Zeeland</option>
-            <option value="brabant">Brabant</option>
-          </select>
-        </div>
-        <div id="hectaresField" style="display:none">
-          <label>Hectares</label>
-          <input type="number" id="pHectares" placeholder="bijv. 120"/>
-        </div>
-        <div id="sectorField" style="display:none">
-          <label>Sector</label>
-          <select id="pSector">
-            <option value="">Selecteer sector</option>
-            <option value="food_processor">Food processor</option>
-            <option value="retailer">Retailer / supermarkt</option>
-            <option value="catering">Catering / foodservice</option>
-            <option value="wholesaler">Groothandel</option>
-            <option value="exporter">Exporteur</option>
-          </select>
-        </div>
-        <div id="budgetField" style="display:none">
-          <label>Jaarlijks inkoopbudget (€)</label>
-          <input type="number" id="pBudget" placeholder="bijv. 5000000"/>
-        </div>
-      </div>
-    </div>
+<div class="profile-card">
+<div class="profile-section">Bedrijfsgegevens</div>
+<div class="field-grid">
+<div>
+<label>Naam</label>
+<input type="text" id="pName"/>
+</div>
+<div>
+<label>Bedrijf</label>
+<input type="text" id="pCompany"/>
+</div>
+<div>
+<label>Regio</label>
+<select id="pRegion">
+<option value="">Selecteer regio</option>
+<option value="noord_groningen">Noord-Groningen</option>
+<option value="groningen">Groningen</option>
+<option value="friesland">Friesland</option>
+<option value="drenthe">Drenthe</option>
+<option value="flevoland">Flevoland</option>
+<option value="zeeland">Zeeland</option>
+<option value="brabant">Brabant</option>
+</select>
+</div>
+<div id="hectaresField" style="display:none">
+<label>Hectares</label>
+<input type="number" id="pHectares" placeholder="bijv. 120"/>
+</div>
+<div id="sectorField" style="display:none">
+<label>Sector</label>
+<select id="pSector">
+<option value="">Selecteer sector</option>
+<option value="food_processor">Food processor</option>
+<option value="retailer">Retailer / supermarkt</option>
+<option value="catering">Catering / foodservice</option>
+<option value="wholesaler">Groothandel</option>
+<option value="exporter">Exporteur</option>
+</select>
+</div>
+<div id="budgetField" style="display:none">
+<label>Jaarlijks inkoopbudget (€)</label>
+<input type="number" id="pBudget" placeholder="bijv. 5000000"/>
+</div>
+</div>
+</div>
 
-    <!-- Farmer-only fields -->
-    <div class="profile-card" id="farmerFields" style="display:none">
-      <div class="profile-section">Teelt</div>
-      <label>Grondsoort</label>
-      <select id="pSoil">
-        <option value="">Selecteer grondsoort</option>
-        <option value="klei">Zeeklei</option>
-        <option value="zand">Zand</option>
-        <option value="dal">Dalgrond</option>
-        <option value="loss">Löss</option>
-        <option value="veen">Veen</option>
-      </select>
-      <label style="margin-top:16px">Gewassen</label>
-      <div class="crops-grid">
-        <div class="crop-check" data-crop="green_beans" onclick="toggleCrop(this)">Sperziebonen</div>
-        <div class="crop-check" data-crop="wheat" onclick="toggleCrop(this)">Wintertarwe</div>
-        <div class="crop-check" data-crop="potatoes" onclick="toggleCrop(this)">Aardappelen</div>
-        <div class="crop-check" data-crop="onions" onclick="toggleCrop(this)">Uien</div>
-        <div class="crop-check" data-crop="lentils" onclick="toggleCrop(this)">Linzen</div>
-        <div class="crop-check" data-crop="oats" onclick="toggleCrop(this)">Haver</div>
-        <div class="crop-check" data-crop="peas" onclick="toggleCrop(this)">Erwten</div>
-        <div class="crop-check" data-crop="carrots" onclick="toggleCrop(this)">Wortelen</div>
-      </div>
-    </div>
+<div class="profile-card" id="farmerFields" style="display:none">
+<div class="profile-section">Teelt</div>
+<label>Grondsoort</label>
+<select id="pSoil">
+<option value="">Selecteer grondsoort</option>
+<option value="klei">Zeeklei</option>
+<option value="zand">Zand</option>
+<option value="dal">Dalgrond</option>
+<option value="loss">Löss</option>
+<option value="veen">Veen</option>
+</select>
+<label style="margin-top:16px">Gewassen</label>
+<div class="crops-grid">
+<div class="crop-check" data-crop="green_beans" onclick="toggleCrop(this)">Sperziebonen</div>
+<div class="crop-check" data-crop="wheat" onclick="toggleCrop(this)">Wintertarwe</div>
+<div class="crop-check" data-crop="potatoes" onclick="toggleCrop(this)">Aardappelen</div>
+<div class="crop-check" data-crop="onions" onclick="toggleCrop(this)">Uien</div>
+<div class="crop-check" data-crop="lentils" onclick="toggleCrop(this)">Linzen</div>
+<div class="crop-check" data-crop="oats" onclick="toggleCrop(this)">Haver</div>
+<div class="crop-check" data-crop="peas" onclick="toggleCrop(this)">Erwten</div>
+<div class="crop-check" data-crop="carrots" onclick="toggleCrop(this)">Wortelen</div>
+</div>
+</div>
 
-    <div class="btn-row">
-      <button class="btn-ghost" onclick="logout()">Uitloggen</button>
-      <button class="btn-primary" style="width:auto;padding:10px 28px;margin-top:0" onclick="saveProfile()">Opslaan</button>
-    </div>
-    <div class="msg" id="profileMsg"></div>
-  </div>
+<div class="btn-row">
+<button class="btn-ghost" onclick="logout()">Uitloggen</button>
+<button class="btn-primary" style="width:auto;padding:10px 28px;margin-top:0" onclick="saveProfile()">Opslaan</button>
+</div>
+<div class="msg" id="profileMsg"></div>
+</div>
 </div>
 
 <script>
@@ -195,6 +193,25 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 let currentRole = 'farmer';
 let selectedCrops = [];
 let userRole = null;
+
+// Lees ?next= parameter uit URL — dit is de pagina waar de gebruiker vandaan kwam
+function getNextUrl() {
+  const params = new URLSearchParams(window.location.search);
+  const next = params.get('next');
+  // Alleen interne paden toestaan (geen externe redirects)
+  if (next && next.startsWith('/') && !next.startsWith('//')) return next;
+  return null;
+}
+
+// Redirect na login: ga naar ?next= als die er is, anders op basis van rol
+function redirectAfterLogin(role) {
+  const next = getNextUrl();
+  if (next) {
+    window.location.href = next;
+  } else {
+    window.location.href = role === 'buyer' ? '/analyse' : '/boer';
+  }
+}
 
 async function init() {
   const { data: { session } } = await sb.auth.getSession();
@@ -222,7 +239,11 @@ async function login() {
   const password = document.getElementById('loginPassword').value;
   const { data, error } = await sb.auth.signInWithPassword({ email, password });
   if (error) return showMsg('authMsg', error.message, 'error');
-  showProfile(data.user);
+
+  // Haal rol op en redirect correct
+  const { data: profile } = await sb.from('profiles').select('role').eq('id', data.user.id).single();
+  const role = profile?.role || 'farmer';
+  redirectAfterLogin(role);
 }
 
 async function register() {
@@ -236,21 +257,10 @@ async function register() {
   const { data, error } = await sb.auth.signUp({ email, password });
   if (error) return showMsg('authMsg', error.message, 'error');
 
-  // Insert profile with correct role
-  await sb.from('profiles').upsert({
-    id: data.user.id,
-    role: currentRole,
-    name,
-    company
-  });
+  await sb.from('profiles').upsert({ id: data.user.id, role: currentRole, name, company });
 
-  showMsg('authMsg', 'Account aangemaakt! Check je e-mail om te bevestigen, dan word je automatisch doorgestuurd.', 'success');
-
-  // Wait for email confirmation then redirect — for now show success
-  setTimeout(() => {
-    const dest = currentRole === 'buyer' ? '/analyse' : '/boer';
-    window.location.href = dest;
-  }, 3000);
+  showMsg('authMsg', 'Account aangemaakt! Even wachten…', 'success');
+  setTimeout(() => redirectAfterLogin(currentRole), 2000);
 }
 
 async function showProfile(user) {
@@ -261,21 +271,17 @@ async function showProfile(user) {
   if (!profile) return;
 
   userRole = profile.role;
-
   document.getElementById('profileName').textContent = profile.name || 'Mijn profiel';
 
-  // Role badge
   const badge = document.getElementById('roleBadge');
   badge.innerHTML = profile.role === 'farmer'
     ? '<span class="role-badge farmer">🌱 Boer / teler</span>'
     : '<span class="role-badge buyer">🏭 Koper / afnemer</span>';
 
-  // Shared fields
   document.getElementById('pName').value = profile.name || '';
   document.getElementById('pCompany').value = profile.company || '';
   document.getElementById('pRegion').value = profile.region || '';
 
-  // Role-specific fields
   if (profile.role === 'farmer') {
     document.getElementById('farmerFields').style.display = 'block';
     document.getElementById('hectaresField').style.display = 'block';
@@ -330,10 +336,9 @@ async function saveProfile() {
 
   const { error } = await sb.from('profiles').upsert(update);
   if (error) return showMsg('profileMsg', 'Fout bij opslaan: ' + error.message, 'error');
+
   showMsg('profileMsg', 'Profiel opgeslagen ✓', 'success');
-  setTimeout(() => {
-    window.location.href = userRole === 'buyer' ? '/analyse' : '/boer';
-  }, 1000);
+  setTimeout(() => redirectAfterLogin(userRole), 1000);
 }
 
 async function logout() {
