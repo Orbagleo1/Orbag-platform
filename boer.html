@@ -144,7 +144,7 @@ const REGION_MAP = {
 
 (async () => {
   const { data: { session } } = await _SB.auth.getSession();
-  if (!session) { window.location.href = '/account'; return; }
+  if (!session) { window.location.href = '/account?next=/boer'; return; }
   // Role check — farmers only
   const { data: p } = await _SB.from('profiles').select('*').eq('id', session.user.id).single();
   if (p && p.role === 'buyer') { window.location.href = '/analyse'; return; }
