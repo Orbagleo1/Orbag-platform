@@ -2,7 +2,7 @@
 
 _Living progress doc. Connected to the claude.ai Orbag Project via the GitHub connector so "where we are" is always visible there._
 
-**Last updated:** 2026-06-06 (self-bootstrapping regions — DB-backed regional layer + auto-bootstrap for new countries, verified live on Poland)
+**Last updated:** 2026-06-06 (DB-backed + self-bootstrapping regions, verified live on Poland; least-privilege write layer fixes silent report-saves)
 
 Legend: ✅ done & verified · 🟡 in progress · ⬜ planned / backlog
 
@@ -33,20 +33,38 @@ The core automated system. Daily closed loop, no human needed in the normal case
 - ✅ **Audit log** `intelligence_apply_log` — one row per run, `held_details` lists every guardrail-blocked outlier with reason.
 - ✅ **Email alerts** via Resend → `leojansen@orbag.nl`, from `alerts@orbag.nl`. Fires only when something is held. **Verified end-to-end** (domain verified, secret set, test alert delivered).
 
-## 3. Infrastructure & ops
+## 3. Buyer business-case engine (`api/generate.js`)
+JS engine computes every number; Haiku only writes the narrative (two-call design).
+- ✅ **Coefficient calibration via deep research** — shock scenarios (Hormuz/Red Sea/energy) sourced to EIA/IRU/Eurostat/Drewry/ITF-OECD; logistics layer calibrated, **CO₂ + fuel mode-split road/sea** (CE Delft/GLEC/Eurostat); fuel intensity sourced; spoilage/packaging/returns confirmed unsourced and labelled LOW (no public primary exists).
+- ✅ **Regional crop-data layer** — KWIN relabelled **NL-only quality table** (tare/defect/nitrate/dm); `REGIONAL_CROP_DATA` overrides yield/price/variable-cost per production region. `cropCoefficients()` merges them, per-field null-safe.
+- ✅ **UK/Norfolk source** added (AHDB Farmbench / Grain Market Daily) + a two-click **Bolwick demo preset**; benchmark source label surfaced in the report KPIs and narrative.
+- ✅ **Buyer-vs-farm separation** — production data is tied to where the crop is grown; logistics + customs are a function of the buyer (`customsCost()` gates import duty by EU-membership vs the buyer), so UK→NL pays the GB→EU charge while UK→UK would not.
+
+## 4. International & self-bootstrapping regions
+Adding a country is a DB row (or an auto-bootstrap), not a code deploy.
+- ✅ **DB-backed regions** — `region_coefficients` (risk + logistics + customs per source) and `regional_crop_data` (yield/price/cost per region), anon-read, seeded 1:1 from the old hardcoded values. Engine reads them live (`getRegionalData` + `buildRegions`) with the hardcoded constants as a **fallback** — never breaks if the DB is empty/unreachable. Verified: no-DB result byte-identical to before; DB overrides picked up live.
+- ✅ **Auto-bootstrap** (`api/bootstrap-region.js`) — a new country resolves via World Bank metadata → a full **provisional** region: great-circle distance→logistics, EU-27 lookup→customs, income level→geo-risk proxy, WB cereal yield→crop yield proxy. **Verified live on Poland** (0 data → working buyer BC in minutes, transparently labelled provisional).
+- ✅ **Signup trigger** — `account.html` captures Country → fire-and-forget `/api/bootstrap-region` (non-blocking); `profiles.country` column added. `analyse.html` populates the source dropdown from the DB so a new region is immediately selectable.
+- ✅ **Write architecture (least-privilege)** — `SUPABASE_KEY` is the ANON key and is the only key in the app **by design** (no all-powerful service_role key = no such attack surface). All privileged writes go through bounded `SECURITY DEFINER` RPCs: `save_report` / `save_buyer_bc` / `save_farmer_bc`, `bootstrap_region`. This **fixed silent report-save failures** (anon could not insert into `reports`/`buyer_bcs`/`farmer_bcs`) — verified a report row now persists live.
+
+## 5. Infrastructure & ops
 - ✅ Supabase project "Project generator" (`wbysgkfsaoyaaatdgics`, West EU).
 - ✅ 3 pg_cron jobs active (detect / apply / notify).
 - ✅ Secret `RESEND_API_KEY` set in Supabase; `orbag.nl` verified as Resend sender domain.
 - ✅ CLIs (`gh`, `vercel`, `supabase`) authenticated and resolving bare.
 
-## 4. Repo & deploy
+## 6. Repo & deploy
 - ✅ All work committed and pushed to `github.com/Orbagleo1/Orbag-platform` (main).
-- ✅ `CLAUDE.md` (project context), 4 intelligence migrations under `supabase/migrations/`, and `notify-held-signals` source under `supabase/functions/`.
-- 🟡 **Partial migration history in repo** — the 4 session migrations are committed; 7 earlier ones exist only in the remote DB. Run `supabase db pull` for a full baseline.
+- ✅ Migrations under `supabase/migrations/` now include the regional layer: `create_regional_data_tables`, `add_country_to_profiles`, `bootstrap_region_function`, `report_save_rpcs` (all applied to the remote + committed).
+- ✅ Serverless: `api/generate.js` (buyer), `api/farmer.js` (farmer), `api/bootstrap-region.js` (new-region auto-bootstrap).
+- 🟡 **Partial migration history in repo** — session migrations are committed; 7 earlier ones exist only in the remote DB. Run `supabase db pull` for a full baseline.
 
 ---
 
 ## Backlog / next steps
+- ⬜ **Sharpen provisional regions** — upgrade auto-bootstrapped regions from `provisional` → `active`: per-crop yield/price/variable-cost via FAOSTAT/Statista (through the Hanze library) + the deep-research harness. Bootstrap leaves price/variable-cost null on purpose (engine falls back to NL meanwhile).
+- ⬜ **Rate-limit the public RPCs** (`save_*`, `bootstrap_region`) — they are anon-callable (parity with the already-public `/api/generate`); add edge rate-limiting before scale.
+- ⬜ Optional: unlock the **regen baseline** (currently NL-locked) so a non-NL farm can be modelled as the regen target, not just the incumbent source.
 - ⬜ Language switcher (NL/EN i18n).
 - ⬜ `supabase db pull` to capture the 7 earlier migrations into the repo for a full baseline.
 - ⬜ Optional: held-count badge in the cockpit dashboard.
