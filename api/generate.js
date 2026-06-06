@@ -3,8 +3,11 @@
 // Two-call design — no token ceiling on calculation complexity
 
 // ── BENCHMARK DATA ───────────────────────────────────────
-// Each crop carries a source comment (value provenance + date). Crops marked UNVERIFIED
-// are internal estimates pending KWIN-AGV/WUR validation — do not cite as authoritative.
+// KWIN is the NL-ONLY quality/agronomy table: tare, defect, dry-matter gain, nitrate risk,
+// and the conventional/bio price split. The REGION-VARYING production economics (yield t/ha,
+// conventional price/t, variable cost/ha) now live in REGIONAL_CROP_DATA below and OVERRIDE the
+// matching KWIN fields per source region. KWIN values are NL (KWIN-AGV 2024; wheat & onions
+// sourced, the rest UNVERIFIED internal estimates) — do not cite UNVERIFIED rows as authoritative.
 var KWIN = {
   green_beans: {yield_ha:10000, price_conv:330, price_bio:420, cost_ha:2100, tare_conv:18, tare_regen:13, dm_gain:10, defect_conv:8,  defect_regen:4,  nitrate_risk:'medium', nitrate_reject_conv:0.040, nitrate_reject_regen:0.004, nitrate_cost:25000}, // src: internal estimate — UNVERIFIED (flag for KWIN-AGV review)
   wheat:       {yield_ha:9400,  price_conv:230, price_bio:340, cost_ha:1400, tare_conv:0,  tare_regen:0,  dm_gain:7,  defect_conv:5,  defect_regen:2,  nitrate_risk:'low',    nitrate_reject_conv:0.010, nitrate_reject_regen:0.001, nitrate_cost:10000}, // src: BIJ12 KWIN-AGV 2024 — yield 9,400 kg/ha, price €0.23/kg (=€230/t)
@@ -15,6 +18,58 @@ var KWIN = {
   peas:        {yield_ha:5000,  price_conv:420, price_bio:700, cost_ha:1000, tare_conv:12, tare_regen:9,  dm_gain:9,  defect_conv:7,  defect_regen:3,  nitrate_risk:'low',    nitrate_reject_conv:0.008, nitrate_reject_regen:0.001, nitrate_cost:10000}, // src: internal estimate — UNVERIFIED
   carrots:     {yield_ha:80000, price_conv:100, price_bio:140, cost_ha:2200, tare_conv:15, tare_regen:13, dm_gain:3,  defect_conv:10, defect_regen:6,  nitrate_risk:'low',    nitrate_reject_conv:0.010, nitrate_reject_regen:0.001, nitrate_cost:8000}, // src: internal estimate — UNVERIFIED
 };
+
+// ── REGIONAL CROP PRODUCTION DATA ────────────────────────
+// Production economics are a function of WHERE the crop is GROWN (the source region), NOT of
+// the buyer. Keyed by region; each crop carries yield (t/ha), conventional price (EUR/t),
+// variable_cost (EUR/ha) and a source_label for provenance. These OVERRIDE KWIN's
+// yield_ha/price_conv/cost_ha; everything else (quality, bio price) still comes from KWIN (NL).
+// NOTE: logistics + customs are kept OUT of this object on purpose — they belong to the
+// buyer⇄farm route (see LOGISTICS + BUYER_LOCATION), so the same UK production data can serve a
+// UK buyer (no border) or an NL buyer (border) without change.
+var REGIONAL_CROP_DATA = {
+  nl: {
+    // src: KWIN-AGV 2024 (NL) — migrated 1:1 from the KWIN table above (yield kg/ha ÷1000 = t/ha)
+    green_beans:{yield_t_ha:10.0, price_conv:330, variable_cost_ha:2100, source_label:'KWIN-AGV 2024'},
+    wheat:      {yield_t_ha:9.4,  price_conv:230, variable_cost_ha:1400, source_label:'KWIN-AGV 2024'},
+    potatoes:   {yield_t_ha:49.5, price_conv:170, variable_cost_ha:3300, source_label:'KWIN-AGV 2024'},
+    onions:     {yield_t_ha:47.0, price_conv:130, variable_cost_ha:8507, source_label:'KWIN-AGV 2024'},
+    lentils:    {yield_t_ha:4.5,  price_conv:420, variable_cost_ha:1000, source_label:'KWIN-AGV 2024'},
+    oats:       {yield_t_ha:5.2,  price_conv:210, variable_cost_ha:950,  source_label:'KWIN-AGV 2024'},
+    peas:       {yield_t_ha:5.0,  price_conv:420, variable_cost_ha:1000, source_label:'KWIN-AGV 2024'},
+    carrots:    {yield_t_ha:80.0, price_conv:100, variable_cost_ha:2200, source_label:'KWIN-AGV 2024'},
+  },
+  uk_norfolk: {
+    // src: AHDB Farmbench / Grain Market Daily 2024/25 — UNVERIFIED-but-traceable, values in EUR
+    wheat:    {yield_t_ha:8.0,  price_conv:235, variable_cost_ha:670,  source_label:'AHDB Farmbench / Grain Market Daily 2024/25'}, // SOURCE: AHDB feed wheat Nov-25 £199.66/t, full econ cost ~£1610/ha
+    potatoes: {yield_t_ha:45.0, price_conv:230, variable_cost_ha:2350, source_label:'AHDB Farmbench / Grain Market Daily 2024/25'}, // SOURCE: AHDB highest-overhead crop, var cost ~9x combinables
+    peas:     {yield_t_ha:4.2,  price_conv:280, variable_cost_ha:290,  source_label:'AHDB Farmbench / Grain Market Daily 2024/25'}, // SOURCE: AHDB feed peas, low input, N-fixing
+  },
+};
+
+// Map a sourcing origin (currentSource) to its crop-production region. The crop region can also
+// be set directly via the `region` field (e.g. the Bolwick preset sets region='uk_norfolk').
+var SOURCE_TO_CROP_REGION = {uk:'uk_norfolk', netherlands:'nl', mixed_eu:'nl'};
+function resolveCropRegion(d) {
+  if (d && d.region && REGIONAL_CROP_DATA[d.region]) return d.region;          // explicit crop region
+  if (d && d.currentSource && SOURCE_TO_CROP_REGION[d.currentSource]) return SOURCE_TO_CROP_REGION[d.currentSource];
+  return 'nl';                                                                 // default: NL benchmarks
+}
+// Build the effective crop coefficients: KWIN quality fields + regional production overrides.
+function cropCoefficients(crop, cropRegion) {
+  var base = KWIN[crop] || KWIN.green_beans;
+  var k = {}; for (var f in base) k[f] = base[f];                              // clone — never mutate KWIN
+  var rcd = REGIONAL_CROP_DATA[cropRegion] && REGIONAL_CROP_DATA[cropRegion][crop];
+  if (!rcd) rcd = REGIONAL_CROP_DATA.nl[crop];                                 // fall back to NL economics
+  if (rcd) {
+    k.yield_ha    = Math.round(rcd.yield_t_ha * 1000);                         // t/ha -> kg/ha (engine math)
+    k.price_conv  = rcd.price_conv;
+    k.cost_ha     = rcd.variable_cost_ha;
+    k.source_label = rcd.source_label;
+  }
+  if (!k.source_label) k.source_label = 'KWIN-AGV 2024';
+  return k;
+}
 
 // ── DELIVERY SPEC MODIFIERS ──────────────────────────────
 var DELIVERY_MOD = {
@@ -43,8 +98,8 @@ var SEASON_MOD = {
 
 // ── RISK PERCENTAGES ─────────────────────────────────────
 var RISK_PCT = {
-  geopolitical: {morocco_egypt:0.15, turkey_spain:0.08, netherlands:0.02, mixed_eu:0.045, mixed_global:0.115},
-  weather_conv: {morocco_egypt:0.30, turkey_spain:0.22, netherlands:0.20, mixed_eu:0.18, mixed_global:0.25}, // morocco_egypt: JRC MARS drought data 2024 (was 0.32)
+  geopolitical: {morocco_egypt:0.15, turkey_spain:0.08, netherlands:0.02, mixed_eu:0.045, mixed_global:0.115, uk:0.04}, // uk: stable OECD
+  weather_conv: {morocco_egypt:0.30, turkey_spain:0.22, netherlands:0.20, mixed_eu:0.18, mixed_global:0.25, uk:0.22}, // morocco_egypt: JRC MARS drought 2024 (was 0.32); uk: higher rainfall variability than NL
   weather_regen: 0.12,
   recall_conv:  {none:0.003, minor:0.012, moderate:0.035, major:0.09},
   recall_regen: 0.0008,
@@ -62,6 +117,7 @@ var LOGISTICS = {
     netherlands:    {cost_per_t:8,  distance_km:120,  transit_days:1,  buffer_weeks:1},
     mixed_eu:       {cost_per_t:22, distance_km:900,  transit_days:3,  buffer_weeks:2},
     mixed_global:   {cost_per_t:75, distance_km:4000, transit_days:18, buffer_weeks:5},
+    uk:             {cost_per_t:30, distance_km:480,  transit_days:2,  buffer_weeks:2}, // Stena Harwich-Hook short-sea + road (key is cost_per_t to match logiComponents)
   },
   // Cold chain cost premium per tonne per week of transit
   cold_chain_per_week: 12,
@@ -79,8 +135,9 @@ var LOGISTICS = {
     dried:  {morocco_egypt:0.002,turkey_spain:0.002,netherlands:0.001,mixed_eu:0.002,mixed_global:0.003},
     any:    {morocco_egypt:0.03, turkey_spain:0.02, netherlands:0.003,mixed_eu:0.012,mixed_global:0.04},
   },
-  // Import/customs cost per tonne (non-EU sourcing)
-  import_cost: {morocco_egypt:18, turkey_spain:0, netherlands:0, mixed_eu:0, mixed_global:22},
+  // Import/customs cost per tonne charged to an EU buyer (non-EU sourcing). Gated by customsCost()
+  // against BUYER_LOCATION so a same-customs-area buyer (e.g. UK->UK) incurs nothing.
+  import_cost: {morocco_egypt:18, turkey_spain:0, netherlands:0, mixed_eu:0, mixed_global:22, uk:45}, // uk: post-Brexit BTOM/Common User Charge + SPS, EUR/t GB->EU
   // Internal logistics saving from shorter supply chain (% of transport cost)
   internal_saving_pct: 0.15,
 
@@ -112,7 +169,7 @@ var LOGISTICS = {
   // short-road < long-haul ordering CONFIRMED (HIGH). Maritime lowered from 0.88-0.92 (MEDIUM):
   // GLEC 70% container default was refuted as a clean benchmark and laden trips run ~50-60% loaded,
   // so 0.70-0.80 is realistic for sea. src: Eurostat road-freight journey characteristics 2024.
-  load_factor: {morocco_egypt:0.78, turkey_spain:0.80, netherlands:0.75, mixed_eu:0.82, mixed_global:0.78},
+  load_factor: {morocco_egypt:0.78, turkey_spain:0.80, netherlands:0.75, mixed_eu:0.82, mixed_global:0.78, uk:0.82},
   // Annualised average seasonal/peak freight surcharge on haulage. HIGH: maritime PSS spikes
   // 17-28% of base FEU but only part-year; road contract rates +~2% Q4'25 -> 0.08 mid-point.
   // src: Drewry WCI (Jun 2026), IRU Q4 2025 benchmark, Seatrade peak-season.
@@ -142,7 +199,23 @@ var PROCESSING_CONF  = {green_beans:'HIGH', peas:'HIGH', lentils:'HIGH', wheat:'
 
 // Sea-route source regions — exposed to maritime shocks (freight, transit, geopolitics).
 // Netherlands / mixed_eu are land/short-haul and structurally immune to these.
-var SEA_ROUTES = {morocco_egypt:true, turkey_spain:true, mixed_global:true};
+var SEA_ROUTES = {morocco_egypt:true, turkey_spain:true, mixed_global:true, uk:true}; // uk: Channel short-sea leg
+
+// ── BUYER LOCATION vs FARM LOCATION ──────────────────────
+// Logistics + customs are a function of the route from the source to the BUYER, not of the farm
+// alone. The UI currently exposes only an NL (EU) buyer, but the structure below keeps customs
+// buyer-aware: customsCost() charges import_cost only when the source sits in a DIFFERENT customs
+// area than the buyer — so a UK farm -> UK buyer pays 0, while a UK farm -> NL buyer pays the GB->EU
+// charge. Production data (REGIONAL_CROP_DATA) stays separate so it is unaffected by buyer location.
+var BUYER_LOCATION = 'nl';   // EU buyer — only option in the current UI
+// EU / customs-union membership by location key — covers BOTH source keys and buyer-location keys
+// (so 'nl' and 'netherlands' both resolve). uk = non-EU post-Brexit (customs/SPS apply to an EU buyer).
+var IS_EU = {nl:true, netherlands:true, mixed_eu:true, turkey_spain:false, morocco_egypt:false, mixed_global:false, uk:false, uk_norfolk:false};
+function customsCost(sourceKey) {
+  // Same customs area as the buyer => no border cost; different area => the source's import_cost.
+  if (!!IS_EU[sourceKey] === !!IS_EU[BUYER_LOCATION]) return 0;
+  return LOGISTICS.import_cost[sourceKey] || 0;
+}
 
 // ── SHOCK SCENARIO LIBRARY ───────────────────────────────
 // Named forward-looking stress tests. Each shock applies multipliers/additions to the
@@ -180,8 +253,9 @@ function calculate(d, sc, mkt) {
   mkt = mkt || {};
   var diesel = mkt.diesel != null ? mkt.diesel : LOGISTICS.fuel.diesel_price_eur_l;
   var carbon = mkt.carbon != null ? mkt.carbon : LOGISTICS.emissions.carbon_price_eur_t;
-  var crop     = d.crop || 'green_beans';
-  var k        = KWIN[crop] || KWIN.green_beans;
+  var crop       = d.crop || 'green_beans';
+  var cropRegion = resolveCropRegion(d);                  // where the crop is grown (production data)
+  var k          = cropCoefficients(crop, cropRegion);   // KWIN quality + regional yield/price/cost
   var dm       = DELIVERY_MOD[d.deliverySpec] || DELIVERY_MOD.any;
   var sm       = SECTOR_MOD[d.sector] || SECTOR_MOD.food_processor;
   var szm      = SEASON_MOD[d.seasonality] || SEASON_MOD.flexible;
@@ -282,7 +356,7 @@ function calculate(d, sc, mkt) {
     var cold      = Math.round(transitDay / 7 * chain_rate);
     var storage   = Math.round(t.buffer_weeks * storage_rate);
     var carrying  = Math.round(price * t.buffer_weeks * LOGISTICS.carrying_cost_pct_per_week);
-    var importd   = LOGISTICS.import_cost[sourceKey] || 0;
+    var importd   = customsCost(sourceKey);   // buyer-aware: 0 when source shares the buyer's customs area
     var spoil_rate= Math.min(LOGISTICS.spoilage_cap, spoilDay * transitDay);
     var spoilage  = Math.round(price * spoil_rate);
     var returns   = Math.round(transport * LOGISTICS.returns_pct);
@@ -364,6 +438,8 @@ function calculate(d, sc, mkt) {
     },
     carbon: {ha_needed, total_potential:carbon_total, buyer_share_30pct:carbon_share},
     market: {
+      crop_source:      k.source_label,
+      crop_region:      cropRegion,
       kwin_conv_price:  k.price_conv,
       kwin_bio_price:   k.price_bio,
       regen_price_est:  Math.round(price * (1+premium)),
@@ -459,7 +535,7 @@ function buildNarrativePrompt(d, calc, liveContext) {
     + 'PREMIUM COST: ' + f(c.prem_annual) + '/yr | PROCESSING SAVING: ' + f(c.proc_annual) + '/yr\n'
     + 'PROCESSING: tare ' + f(c.processing.tare_saving_per_tonne) + '/t, DM ' + f(c.processing.dm_value_per_tonne) + '/t, defect ' + f(c.processing.defect_saving_per_tonne) + '/t (' + c.processing.confidence + ' conf.)\n'
     + 'CARBON: ' + f(c.carbon.buyer_share_30pct) + '/yr buyer share on ' + c.carbon.ha_needed + ' ha\n'
-    + 'KWIN: conventional ' + f(c.market.kwin_conv_price) + '/t, regen est. ' + f(c.market.regen_price_est) + '/t\n'
+    + 'Production benchmark (' + (c.market.crop_source||'KWIN-AGV 2024') + ', ' + (c.market.crop_region||'nl') + '): conventional ' + f(c.market.kwin_conv_price) + '/t, regen est. ' + f(c.market.regen_price_est) + '/t\n'
     + (liveContext || '') + '\n'
     + 'Buyer context: ' + (d.concerns || 'none') + '\n\n'
     + 'Write concise, CFO-level analysis. Return JSON:\n'

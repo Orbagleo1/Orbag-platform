@@ -427,6 +427,7 @@ window._orbagUserId = null;
             <option value="portugal">Portugal (Alentejo)</option>
             <option value="morocco">Morocco</option>
             <option value="denmark">Denmark</option>
+            <option value="uk_norfolk">United Kingdom (Norfolk)</option>
             <option value="no_preference">No regional preference</option>
           </select>
         </div>
@@ -486,6 +487,7 @@ window._orbagUserId = null;
             <option value="netherlands">Netherlands only</option>
             <option value="mixed_eu">Mixed EU countries</option>
             <option value="mixed_global">Mixed global (3+ countries)</option>
+            <option value="uk">United Kingdom (Norfolk)</option>
           </select>
           <div class="field-hint">Where do you currently source this crop?</div>
         </div>
@@ -568,6 +570,10 @@ window._orbagUserId = null;
         </div>
       </div>
     </div>
+
+    <button type="button" class="btn-outline" id="bolwickPresetBtn" onclick="loadBolwickPreset()" style="margin-bottom:10px;display:block;width:100%">
+      ⚡ Load demo preset — Bolwick (Norfolk, UK) · two-click demo
+    </button>
 
     <button class="btn-primary" id="generateBtn" onclick="generate()">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -1047,6 +1053,28 @@ function renderRiskTable(r) {
 }
 
 // ── Generate ──────────────────────────────────
+// ── DEMO PRESET: Bolwick (Norfolk, UK) — Kempen SDG Farmland ──
+// Pre-fills a UK/Norfolk potatoes scenario so the regional-data demo is two clicks.
+function loadBolwickPreset() {
+  const set = (id, val) => { const e = document.getElementById(id); if (e) e.value = val; };
+  set('company', 'DEMO: Bolwick — Norfolk, UK (Kempen SDG Farmland)');
+  set('crop', 'potatoes');
+  set('volume', 5000);
+  set('currentPrice', 230);          // AHDB UK potato benchmark, EUR/t
+  set('currentSource', 'uk');        // logistics + customs route (GB->EU)
+  set('region', 'uk_norfolk');       // crop production data region
+  set('contract', 'season');         // full-season contract
+  set('currentContract', 'mostly_contract');
+  set('deliverySpec', 'frozen');     // processing potatoes
+  set('seasonality', 'year_round');
+  set('csrd', 'mandatory_2026');
+  set('incidents', 'minor');
+  const pr = document.getElementById('premiumRange');
+  if (pr) { pr.value = 15; const pv = document.getElementById('premiumVal'); if (pv) pv.textContent = '15%'; }
+  const btn = document.getElementById('bolwickPresetBtn');
+  if (btn) btn.textContent = '✓ Bolwick demo loaded — now click Generate';
+}
+
 async function generate() {
   const errBox = document.getElementById('errorBox');
   errBox.className = 'error-box';

@@ -2,7 +2,7 @@
 
 _Living progress doc. Connected to the claude.ai Orbag Project via the GitHub connector so "where we are" is always visible there._
 
-**Last updated:** 2026-06-06 (logistics source gaps closed — fuel intensity sourced to CE Delft; spoilage/packaging/returns confirmed unsourced, labelled LOW)
+**Last updated:** 2026-06-06 (regional crop-data layer — KWIN relabelled NL-only, UK/Norfolk source added, Bolwick demo preset)
 
 Legend: ✅ done & verified · 🟡 in progress · ⬜ planned / backlog
 
