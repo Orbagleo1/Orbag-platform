@@ -90,6 +90,8 @@ input:focus,select:focus{border-color:var(--leaf)}
 <input type="text" id="regName" placeholder="Your name"/>
 <label>Company name</label>
 <input type="text" id="regCompany" placeholder="Company name"/>
+<label>Country</label>
+<input type="text" id="regCountry" placeholder="e.g. Netherlands, United Kingdom, Poland"/>
 <label>Email address</label>
 <input type="email" id="regEmail" placeholder="you@email.com"/>
 <label>Password</label>
@@ -260,6 +262,7 @@ async function login() {
 async function register() {
   const name = document.getElementById('regName').value;
   const company = document.getElementById('regCompany').value;
+  const country = document.getElementById('regCountry').value.trim();
   const email = document.getElementById('regEmail').value;
   const password = document.getElementById('regPassword').value;
   if (!name || !email || !password) return showMsg('authMsg', 'Please fill in all fields', 'error');
@@ -268,10 +271,25 @@ async function register() {
   const { data, error } = await sb.auth.signUp({ email, password });
   if (error) return showMsg('authMsg', error.message, 'error');
 
-  await sb.from('profiles').upsert({ id: data.user.id, role: currentRole, name, company });
+  await sb.from('profiles').upsert({ id: data.user.id, role: currentRole, name, company, country });
+
+  // Auto-bootstrap provisional benchmarks for this country if the platform has nothing for it yet.
+  if (country) bootstrapRegion(country);   // fire-and-forget — never blocks signup
 
   showMsg('authMsg', 'Account created! One moment…', 'success');
   setTimeout(() => redirectAfterLogin(currentRole), 2000);
+}
+
+// Ask the backend to set up a provisional benchmark region for a new country. Non-blocking:
+// the user proceeds immediately; the region is sharpened asynchronously by research + review.
+function bootstrapRegion(country) {
+  try {
+    fetch('/api/bootstrap-region', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ country: country })
+    }).catch(function(){ /* non-blocking */ });
+  } catch (e) { /* non-blocking */ }
 }
 
 async function showProfile(user) {

@@ -326,6 +326,7 @@ window._orbagUserId = null;
   // and as the default landing page after login — never to block navigation.
   const { data: p } = await _SB.from('profiles').select('name,role,company,sector').eq('id', session.user.id).single();
   window._orbagUserId = session.user.id;
+  populateRegionsFromDB();   // add any DB-backed / auto-bootstrapped regions to the source dropdown
   // Nav
   const el = document.getElementById('navAuth');
   if (el) el.innerHTML = `
@@ -1053,6 +1054,28 @@ function renderRiskTable(r) {
 }
 
 // ── Generate ──────────────────────────────────
+// Populate the "current source" dropdown with regions held in the database (region_coefficients),
+// including auto-bootstrapped provisional ones — so a new country becomes selectable without a
+// code deploy. Hardcoded options stay; only keys not already present are appended.
+async function populateRegionsFromDB() {
+  try {
+    const { data, error } = await _SB
+      .from('region_coefficients')
+      .select('region_key,label,status')
+      .order('label');
+    if (error || !data) return;
+    const sel = document.getElementById('currentSource');
+    if (!sel) return;
+    data.forEach(r => {
+      if (sel.querySelector(`option[value="${r.region_key}"]`)) return;   // already a hardcoded option
+      const o = document.createElement('option');
+      o.value = r.region_key;
+      o.textContent = (r.label || r.region_key) + (r.status === 'provisional' ? ' · provisional' : '');
+      sel.appendChild(o);
+    });
+  } catch (e) { /* keep the static options */ }
+}
+
 // ── DEMO PRESET: Bolwick (Norfolk, UK) — Kempen SDG Farmland ──
 // Pre-fills a UK/Norfolk potatoes scenario so the regional-data demo is two clicks.
 function loadBolwickPreset() {
