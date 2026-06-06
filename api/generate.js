@@ -219,14 +219,23 @@ var SEA_ROUTES = {morocco_egypt:true, turkey_spain:true, mixed_global:true, uk:t
 // buyer-aware: customsCost() charges import_cost only when the source sits in a DIFFERENT customs
 // area than the buyer — so a UK farm -> UK buyer pays 0, while a UK farm -> NL buyer pays the GB->EU
 // charge. Production data (REGIONAL_CROP_DATA) stays separate so it is unaffected by buyer location.
-var BUYER_LOCATION = 'nl';   // EU buyer — only option in the current UI
+var BUYER_LOCATION = 'nl';   // default buyer location when the request omits one (NL = EU)
 var BUYER_IS_EU = true;      // NL buyer sits inside the EU customs area
 // EU / customs-union membership by source key (hardcoded fallback; the DB carries is_eu per region).
 var IS_EU = {netherlands:true, mixed_eu:true, turkey_spain:false, morocco_egypt:false, mixed_global:false, uk:false};
-function customsCost(region) {
+// Buyer location -> inside the EU customs area? The UI defaults to NL; the field lets a non-EU
+// buyer (e.g. UK) be modelled so a UK->UK route pays no customs while UK->NL does. Unknown or
+// missing -> default EU buyer, so existing submissions compute exactly as before.
+var BUYER_IS_EU_BY_LOCATION = {nl:true, eu:true, uk:false};
+function buyerIsEU(loc) {
+  if (loc == null || loc === '') return BUYER_IS_EU;
+  return BUYER_IS_EU_BY_LOCATION[loc] != null ? BUYER_IS_EU_BY_LOCATION[loc] : BUYER_IS_EU;
+}
+function customsCost(region, buyerEu) {
   // region is a resolved region object. Same customs area as the buyer => no border cost.
   if (!region) return 0;
-  if (!!region.is_eu === BUYER_IS_EU) return 0;
+  if (buyerEu == null) buyerEu = BUYER_IS_EU;   // default: NL/EU buyer (back-compat)
+  if (!!region.is_eu === buyerEu) return 0;
   return region.import_cost || 0;
 }
 
@@ -309,6 +318,7 @@ function calculate(d, sc, mkt) {
   var carbon = mkt.carbon != null ? mkt.carbon : LOGISTICS.emissions.carbon_price_eur_t;
   var REGIONS = buildRegions(mkt.regions);               // hardcoded fallback ∪ live DB regions
   var R       = REGIONS[d.currentSource] || REGIONS.netherlands; // resolved source region
+  var buyerEu = buyerIsEU(d.buyerLocation);              // buyer customs area (default NL/EU)
   var crop       = d.crop || 'green_beans';
   var cropRegion = resolveCropRegion(d, mkt);            // where the crop is grown (production data)
   var k          = cropCoefficients(crop, cropRegion, mkt); // KWIN quality + regional yield/price/cost
@@ -413,7 +423,7 @@ function calculate(d, sc, mkt) {
     var cold      = Math.round(transitDay / 7 * chain_rate);
     var storage   = Math.round(t.buffer_weeks * storage_rate);
     var carrying  = Math.round(price * t.buffer_weeks * LOGISTICS.carrying_cost_pct_per_week);
-    var importd   = customsCost(rgn);   // buyer-aware: 0 when source shares the buyer's customs area
+    var importd   = customsCost(rgn, buyerEu);   // buyer-aware: 0 when source shares the buyer's customs area
     var spoil_rate= Math.min(LOGISTICS.spoilage_cap, spoilDay * transitDay);
     var spoilage  = Math.round(price * spoil_rate);
     var returns   = Math.round(transport * LOGISTICS.returns_pct);
@@ -851,3 +861,13 @@ module.exports = async function handler(req, res) {
     return res.status(500).json({error:err.message});
   }
 };
+
+// ── TEST HOOKS ───────────────────────────────────────────
+// Expose pure engine internals for offline fixture tests (tests/engine.test.js). These are
+// attached to the exported handler function object and do NOT affect the Vercel default export
+// or runtime behaviour — the engine still computes everything from the request as before.
+module.exports.calculate = calculate;
+module.exports.SCENARIOS = SCENARIOS;
+module.exports.cropCoefficients = cropCoefficients;
+module.exports.buildRegions = buildRegions;
+module.exports.buyerIsEU = buyerIsEU;

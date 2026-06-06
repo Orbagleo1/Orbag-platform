@@ -502,6 +502,15 @@ window._orbagUserId = null;
           </select>
           <div class="field-hint">Spot purchasing = higher price volatility exposure</div>
         </div>
+        <div class="field">
+          <label>Buyer location</label>
+          <select id="buyerLocation">
+            <option value="nl">Netherlands (EU)</option>
+            <option value="eu">Other EU country</option>
+            <option value="uk">United Kingdom (non-EU)</option>
+          </select>
+          <div class="field-hint">Where the goods are received — sets customs: a non-EU source into the EU pays import duty, same-area trade does not.</div>
+        </div>
       </div>
 
       <div style="margin-top:16px" class="form-grid">
@@ -657,6 +666,7 @@ function getFormData() {
     currentPrice:   parseInt(document.getElementById('currentPrice').value) || 300,
     premium:        parseInt(document.getElementById('premiumRange').value),
     currentSource:  document.getElementById('currentSource').value,
+    buyerLocation:  (document.getElementById('buyerLocation')||{}).value || 'nl',
     currentContract:document.getElementById('currentContract').value,
     csrd:           document.getElementById('csrd').value,
     incidents:      document.getElementById('incidents').value,
