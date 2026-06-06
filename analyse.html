@@ -858,29 +858,22 @@ function renderReport(d, fd) {
           <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#A32D2D;margin-bottom:8px">Current logistics cost</div>
           <div style="font-size:20px;font-weight:500;color:#A32D2D;margin-bottom:8px">${d.logistics_detail.current_per_tonne}</div>
           <div style="font-size:11px;color:#791F1F;display:grid;gap:3px">
-            <div>Transport: €${d.logistics_detail.components.transport}/t</div>
-            <div>Cold chain: €${d.logistics_detail.components.cold_chain}/t</div>
-            <div>Buffer storage (${d.logistics_detail.buffer_weeks_current}wk): €${d.logistics_detail.components.storage}/t</div>
-            <div>Carrying cost: €${d.logistics_detail.components.carrying}/t</div>
-            <div>Import duties: €${d.logistics_detail.components.import_duties}/t</div>
-            <div>Spoilage risk: €${d.logistics_detail.components.spoilage}/t</div>
-            <div style="margin-top:4px;font-size:10px;opacity:.7">Transit: ${d.logistics_detail.transit_days_current} days</div>
+            ${logiRows(d.logistics_detail.components)}
+            <div style="margin-top:4px;font-size:10px;opacity:.7">Transit: ${d.logistics_detail.transit_days_current} days · CO₂ ${d.logistics_detail.co2_kg_current} kg/t</div>
           </div>
         </div>
         <div style="padding:14px;border-radius:8px;background:#EAF3DE;border:1px solid #97C459">
           <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#2d7a1e;margin-bottom:8px">Regen Noord-NL logistics</div>
           <div style="font-size:20px;font-weight:500;color:#2d7a1e;margin-bottom:8px">${d.logistics_detail.regen_per_tonne}</div>
           <div style="font-size:11px;color:#1a5011;display:grid;gap:3px">
-            <div>Transport: local delivery</div>
-            <div>Cold chain: same-day where needed</div>
-            <div>Buffer storage (1wk max): minimal</div>
-            <div>Carrying cost: near-zero</div>
-            <div>Import duties: €0 (EU domestic)</div>
-            <div>Spoilage risk: minimal</div>
-            <div style="margin-top:4px;font-size:10px;opacity:.7">Transit: 1 day max</div>
+            ${logiRows(d.logistics_detail.components_regen)}
+            <div style="margin-top:4px;font-size:10px;opacity:.7">Transit: 1 day max · CO₂ ${d.logistics_detail.co2_kg_regen} kg/t</div>
           </div>
         </div>
       </div>
+      ${d.logistics_detail.co2_saving_kg_per_tonne != null ? `<div style="margin-top:10px;padding:10px 14px;border-radius:8px;background:#E6F1FB;border:1px solid #85B7EB;font-size:12px;color:#0C447C">
+        CO₂ avoided by near-shoring: <b>${d.logistics_detail.co2_saving_kg_per_tonne} kg/t</b> (${(d.logistics_detail.co2_saving_kg_per_tonne*fd.volume/1000).toFixed(1)} t/yr) — directly supports scope-3 / CSRD reporting
+      </div>` : ''}
       <div style="padding:12px 16px;border-radius:8px;background:var(--mint);border:1px solid var(--leaf);display:flex;justify-content:space-between;align-items:center">
         <div>
           <div style="font-size:11px;color:#3ea32a;font-weight:600">Logistics saving per tonne</div>
@@ -892,6 +885,35 @@ function renderReport(d, fd) {
         </div>
       </div>
       ${d.logistics_note ? `<div style="margin-top:10px;font-size:13px;color:var(--stone)">${d.logistics_note}</div>` : ''}
+    </div>` : ''}
+
+    ${d.scenario_stress && d.scenario_stress.length ? `
+    <div class="section">
+      <div class="section-title">Resilience stress test — forward shock scenarios</div>
+      <div style="font-size:12px;color:var(--stone);margin-bottom:12px">How the business case responds to named supply-chain shocks. Sea-route sourcing is exposed; near-shored Noord-NL regen supply is structurally insulated — the resilience gap is the multi-year argument.</div>
+      <div style="display:grid;gap:8px">
+        ${d.scenario_stress.map(s => `
+        <div style="border:1px solid var(--line);border-radius:8px;padding:12px 14px;background:var(--paper)">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:6px">
+            <span style="font-weight:600;color:var(--forest)">${s.label}</span>
+            <span style="font-size:10px;font-weight:700;text-transform:uppercase;padding:2px 8px;border-radius:8px;${s.resilient?'background:#EAF3DE;color:#2d7a1e':'background:#FCEBEB;color:#A32D2D'}">${s.resilient?'Regen resilient':'Exposed'}</span>
+          </div>
+          <div style="font-size:11px;color:var(--stone);margin-bottom:8px">${s.desc}</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div style="background:#FCEBEB;border:1px solid #F09595;border-radius:6px;padding:8px 10px">
+              <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#A32D2D">Current source — extra cost</div>
+              <div style="font-size:18px;font-weight:500;color:#A32D2D">+€${Math.round(s.incumbent_extra_cost).toLocaleString()}/yr</div>
+              <div style="font-size:10px;color:#791F1F">logistics €${s.incumbent_logi_base}→€${s.incumbent_logi_per_t}/t</div>
+            </div>
+            <div style="background:#EAF3DE;border:1px solid #97C459;border-radius:6px;padding:8px 10px">
+              <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#2d7a1e">Regen Noord-NL — extra cost</div>
+              <div style="font-size:18px;font-weight:500;color:#2d7a1e">+€${Math.round(s.regen_extra_cost).toLocaleString()}/yr</div>
+              <div style="font-size:10px;color:#1a5011">net value holds: €${Math.round(s.regen_net_value).toLocaleString()}/yr</div>
+            </div>
+          </div>
+        </div>`).join('')}
+      </div>
+      <div style="margin-top:8px;font-size:11px;color:var(--stone);font-style:italic">Shock coefficients are forward scenario assumptions (UNVERIFIED — calibration pending). Base case uses live FX, weather, diesel and carbon inputs.</div>
     </div>` : ''}
 
     <div class="orbag-note">
@@ -910,6 +932,21 @@ function renderReport(d, fd) {
   document.getElementById('reportBody').innerHTML = html;
 }
 
+
+// ── Logistics component labels (ordered) ──────
+const LOGI_LABELS = {
+  transport:'Transport', fuel:'Fuel', emissions_co2:'CO₂ cost (ETS)',
+  load_penalty:'Load efficiency', peak_surcharge:'Seasonal / peak', cold_chain:'Cold chain',
+  storage:'Buffer storage', carrying:'Carrying cost', import_duties:'Import duties',
+  spoilage:'Spoilage risk', packaging:'Packaging', returns:'Reverse logistics',
+};
+function logiRows(comp) {
+  if (!comp) return '';
+  return Object.keys(LOGI_LABELS)
+    .filter(k => comp[k] != null)
+    .map(k => `<div>${LOGI_LABELS[k]}: €${comp[k]}/t</div>`)
+    .join('');
+}
 
 function renderProcessingEconomics(p) {
   if (!p || !p.total_saving_per_tonne) return '';

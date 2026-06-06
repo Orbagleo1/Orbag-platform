@@ -83,6 +83,28 @@ var LOGISTICS = {
   import_cost: {morocco_egypt:18, turkey_spain:0, netherlands:0, mixed_eu:0, mixed_global:22},
   // Internal logistics saving from shorter supply chain (% of transport cost)
   internal_saving_pct: 0.15,
+
+  // ── EXTENDED LOGISTICS VARIABLES (added 2026-06) ──
+  // NOTE: all coefficients below are UNVERIFIED placeholders — structurally wired in,
+  // but the numbers still need sourcing (energy index, EU ETS, freight benchmarks).
+  fuel: {
+    diesel_price_eur_l:   1.65,   // UNVERIFIED — EU avg diesel ~2024; TODO: live energy index
+    intensity_l_per_t_km: 0.004,  // UNVERIFIED — blended road/sea litres per tonne-km
+  },
+  emissions: {
+    co2_kg_per_t_km:    0.062,    // UNVERIFIED — blended freight CO2 (road ~0.062, sea ~0.01)
+    carbon_price_eur_t: 80,       // UNVERIFIED — EU ETS ~2024; CSRD scope-3 shadow price
+  },
+  // Vehicle/container utilisation 0-1 (lower = more empty running -> higher per-tonne cost)
+  load_factor: {morocco_egypt:0.90, turkey_spain:0.88, netherlands:0.75, mixed_eu:0.82, mixed_global:0.92}, // UNVERIFIED
+  // Annualised average seasonal/peak freight surcharge on haulage
+  peak_surcharge_pct: 0.08,       // UNVERIFIED
+  // Transit-time spoilage curve (%/day) by delivery spec — replaces flat region rate
+  spoilage_per_day: {fresh:0.006, frozen:0.0008, canned:0.0002, dried:0.0002, any:0.003}, // UNVERIFIED
+  spoilage_cap: 0.10,
+  // Packaging (per tonne) by delivery spec + reverse logistics as % of transport
+  packaging_eur_t: {fresh:9, frozen:6, canned:5, dried:4, any:6}, // UNVERIFIED
+  returns_pct: 0.02,              // UNVERIFIED — reverse logistics share of transport
 };
 
 // Carbon €/ha/yr — capped at max €15 (Rabobank sequestration data + VCM price €5/ton CO2, 2024).
@@ -90,8 +112,35 @@ var LOGISTICS = {
 var CARBON_POTENTIAL = {green_beans:9, wheat:13, potatoes:8, onions:7, lentils:15, oats:12, peas:15, carrots:8};
 var PROCESSING_CONF  = {green_beans:'HIGH', peas:'HIGH', lentils:'HIGH', wheat:'HIGH', oats:'MEDIUM', carrots:'LOW', potatoes:'LOW', onions:'LOW'};
 
+// Sea-route source regions — exposed to maritime shocks (freight, transit, geopolitics).
+// Netherlands / mixed_eu are land/short-haul and structurally immune to these.
+var SEA_ROUTES = {morocco_egypt:true, turkey_spain:true, mixed_global:true};
+
+// ── SHOCK SCENARIO LIBRARY ───────────────────────────────
+// Named forward-looking stress tests. Each shock applies multipliers/additions to the
+// existing risk + logistics layers. Sea-route sources are hit; near-shored NL barely moves.
+// COEFFICIENTS UNVERIFIED — calibration is a research task (see scenario sourcing TODO).
+var SCENARIOS = {
+  none:   {label:'Base case (no shock)',           desc:'', fuel_mult:1,    freight_mult:1,   transit_add_days:0,  price_vol_mult:1,    geo_risk_add:{}},
+  hormuz: {label:'Strait of Hormuz closure',       desc:'Oil/energy spike + maritime disruption + rerouting around Africa',
+           fuel_mult:1.45, freight_mult:1.60, transit_add_days:18, price_vol_mult:1.35,
+           geo_risk_add:{morocco_egypt:0.10, turkey_spain:0.06, mixed_global:0.12, mixed_eu:0.01, netherlands:0.00}},
+  redsea: {label:'Red Sea / Suez disruption',      desc:'Cape rerouting — freight and transit up across maritime routes',
+           fuel_mult:1.20, freight_mult:1.40, transit_add_days:12, price_vol_mult:1.20,
+           geo_risk_add:{morocco_egypt:0.05, turkey_spain:0.04, mixed_global:0.08, mixed_eu:0.01, netherlands:0.00}},
+  energy: {label:'EU energy price spike',          desc:'Diesel/gas surge — all transport up, sea and land',
+           fuel_mult:1.60, freight_mult:1.15, transit_add_days:0,  price_vol_mult:1.15,
+           geo_risk_add:{}},
+};
+
 // ── MAIN CALCULATION ENGINE ──────────────────────────────
-function calculate(d) {
+// sc  = shock scenario overlay (defaults to no shock)
+// mkt = live market overrides {diesel, carbon} from intelligence_benchmarks (defaults to table)
+function calculate(d, sc, mkt) {
+  sc  = sc  || SCENARIOS.none;
+  mkt = mkt || {};
+  var diesel = mkt.diesel != null ? mkt.diesel : LOGISTICS.fuel.diesel_price_eur_l;
+  var carbon = mkt.carbon != null ? mkt.carbon : LOGISTICS.emissions.carbon_price_eur_t;
   var crop     = d.crop || 'green_beans';
   var k        = KWIN[crop] || KWIN.green_beans;
   var dm       = DELIVERY_MOD[d.deliverySpec] || DELIVERY_MOD.any;
@@ -103,9 +152,10 @@ function calculate(d) {
   var suppCnt  = parseInt(d.supplierCount) || 1;
   var cv       = vol * price;
 
-  // 1. Geopolitical
+  // 1. Geopolitical (+ shock overlay on the current source)
   var geo_pct     = RISK_PCT.geopolitical[d.currentSource] || 0.05;
-  var geo_current = Math.round(cv * geo_pct);
+  var geo_shock   = (sc.geo_risk_add && sc.geo_risk_add[d.currentSource]) || 0;
+  var geo_current = Math.round(cv * (geo_pct + geo_shock));
   var geo_regen   = Math.round(cv * 0.02);
   var geo_basis   = Math.round(geo_pct * 100) + '% of €' + Math.round(cv/1000) + 'K contract value — ' + (d.currentSource||'unknown') + ' sourcing profile (WUR 2024)';
 
@@ -123,7 +173,7 @@ function calculate(d) {
 
   // 4. Price volatility
   var pvol_pct     = RISK_PCT.price_vol[d.currentContract] || 0.20;
-  var pvol_current = Math.round(cv * pvol_pct * 0.2);
+  var pvol_current = Math.round(cv * pvol_pct * 0.2 * sc.price_vol_mult);
   var pvol_regen   = Math.round(cv * RISK_PCT.price_vol_regen * 0.2);
   var pvol_basis   = 'Contract structure: ' + (d.currentContract||'unknown') + ' → ' + Math.round(pvol_pct*100) + '% price swing exposure';
 
@@ -165,32 +215,50 @@ function calculate(d) {
   var carbon_total = Math.round(ha_needed * (CARBON_POTENTIAL[crop] || 40));
   var carbon_share = Math.round(carbon_total * 0.30);
 
-  // Logistics calculation
+  // ── Logistics calculation (extended: transport, fuel, CO2, load factor, peak,
+  //    cold chain, storage, carrying, import, spoilage curve, packaging, returns) ──
   var lg = LOGISTICS.transport[d.currentSource] || LOGISTICS.transport.netherlands;
   var lg_regen = LOGISTICS.transport.netherlands;
   var cold_chain = d.deliverySpec === 'fresh' || d.deliverySpec === 'frozen';
   var storage_rate = cold_chain ? LOGISTICS.storage_cold_per_week : LOGISTICS.storage_ambient_per_week;
   var chain_rate = cold_chain ? LOGISTICS.cold_chain_per_week : 0;
+  var spec = d.deliverySpec || 'any';
+  var spoilDay = LOGISTICS.spoilage_per_day[spec] != null ? LOGISTICS.spoilage_per_day[spec] : LOGISTICS.spoilage_per_day.any;
+  var packaging = LOGISTICS.packaging_eur_t[spec] != null ? LOGISTICS.packaging_eur_t[spec] : LOGISTICS.packaging_eur_t.any;
 
-  // Current logistics cost per tonne
-  var transport_current = lg.cost_per_t;
-  var cold_chain_current = Math.round(lg.transit_days / 7 * chain_rate);
-  var storage_current = Math.round(lg.buffer_weeks * storage_rate);
-  var carrying_current = Math.round(price * lg.buffer_weeks * LOGISTICS.carrying_cost_pct_per_week);
-  var import_current = LOGISTICS.import_cost[d.currentSource] || 0;
-  var spoilage_rate = (LOGISTICS.spoilage[d.deliverySpec||'any']||LOGISTICS.spoilage.any)[d.currentSource] || 0.03;
-  var spoilage_current = Math.round(price * spoilage_rate);
-  var total_logistics_current = transport_current + cold_chain_current + storage_current + carrying_current + import_current + spoilage_current;
+  // Build every logistics line for a transport profile (used for current + regen)
+  function logiComponents(t, sourceKey) {
+    var isSea      = !!SEA_ROUTES[sourceKey];
+    var freightM   = isSea ? sc.freight_mult : 1;          // maritime shocks hit sea routes only
+    var transitDay = t.transit_days + (isSea ? sc.transit_add_days : 0);
+    var transport = Math.round(t.cost_per_t * freightM);
+    var fuel      = Math.round(t.distance_km * LOGISTICS.fuel.intensity_l_per_t_km * diesel * sc.fuel_mult);
+    var co2_kg    = Math.round(t.distance_km * LOGISTICS.emissions.co2_kg_per_t_km);
+    var emissions = Math.round(co2_kg / 1000 * carbon);
+    var lf        = LOGISTICS.load_factor[sourceKey] != null ? LOGISTICS.load_factor[sourceKey] : 0.85;
+    var load_pen  = Math.round((transport + fuel) * (1 / lf - 1));
+    var peak      = Math.round((transport + fuel) * LOGISTICS.peak_surcharge_pct);
+    var cold      = Math.round(transitDay / 7 * chain_rate);
+    var storage   = Math.round(t.buffer_weeks * storage_rate);
+    var carrying  = Math.round(price * t.buffer_weeks * LOGISTICS.carrying_cost_pct_per_week);
+    var importd   = LOGISTICS.import_cost[sourceKey] || 0;
+    var spoil_rate= Math.min(LOGISTICS.spoilage_cap, spoilDay * transitDay);
+    var spoilage  = Math.round(price * spoil_rate);
+    var returns   = Math.round(transport * LOGISTICS.returns_pct);
+    var comp = {
+      transport: transport, fuel: fuel, emissions_co2: emissions,
+      load_penalty: load_pen, peak_surcharge: peak, cold_chain: cold,
+      storage: storage, carrying: carrying, import_duties: importd,
+      spoilage: spoilage, packaging: packaging, returns: returns,
+    };
+    var total = 0; for (var key in comp) total += comp[key];
+    return { components: comp, total: total, co2_kg: co2_kg, spoil_rate: spoil_rate };
+  }
 
-  // Regen logistics cost per tonne (Noord-NL)
-  var transport_regen = lg_regen.cost_per_t;
-  var cold_chain_regen = Math.round(lg_regen.transit_days / 7 * chain_rate);
-  var storage_regen = Math.round(lg_regen.buffer_weeks * storage_rate);
-  var carrying_regen = Math.round(price * lg_regen.buffer_weeks * LOGISTICS.carrying_cost_pct_per_week);
-  var import_regen = 0;
-  var spoilage_regen = Math.round(price * (LOGISTICS.spoilage[d.deliverySpec||'any']||LOGISTICS.spoilage.any).netherlands || 0.003);
-  var total_logistics_regen = transport_regen + cold_chain_regen + storage_regen + carrying_regen + import_regen + spoilage_regen;
-
+  var cur = logiComponents(lg, d.currentSource);
+  var reg = logiComponents(lg_regen, 'netherlands');
+  var total_logistics_current = cur.total;
+  var total_logistics_regen   = reg.total;
   var logistics_saving_per_tonne = total_logistics_current - total_logistics_regen;
   var logistics_save_annual = Math.round(logistics_saving_per_tonne * vol);
 
@@ -199,25 +267,14 @@ function calculate(d) {
     regen_per_tonne: total_logistics_regen,
     saving_per_tonne: logistics_saving_per_tonne,
     annual_saving: logistics_save_annual,
-    components_current: {
-      transport: transport_current,
-      cold_chain: cold_chain_current,
-      storage: storage_current,
-      carrying: carrying_current,
-      import_duties: import_current,
-      spoilage: spoilage_current,
-    },
-    components_regen: {
-      transport: transport_regen,
-      cold_chain: cold_chain_regen,
-      storage: storage_regen,
-      carrying: carrying_regen,
-      import_duties: 0,
-      spoilage: spoilage_regen,
-    },
+    components_current: cur.components,
+    components_regen: reg.components,
+    co2_kg_current: cur.co2_kg,
+    co2_kg_regen: reg.co2_kg,
+    co2_saving_kg_per_tonne: cur.co2_kg - reg.co2_kg,
     transit_days_current: lg.transit_days,
     buffer_weeks_current: lg.buffer_weeks,
-    basis: 'Transport ' + lg.distance_km + 'km @ €' + transport_current + '/t + ' + lg.buffer_weeks + 'wk buffer storage + spoilage ' + Math.round(spoilage_rate*100*10)/10 + '% + import €' + import_current + '/t',
+    basis: 'Transport ' + lg.distance_km + 'km @ €' + cur.components.transport + '/t + fuel €' + cur.components.fuel + '/t + CO2 €' + cur.components.emissions_co2 + '/t + ' + lg.buffer_weeks + 'wk buffer + spoilage ' + Math.round(cur.spoil_rate*1000)/10 + '%',
   };
 
   // Seasonality effect on farm count
@@ -280,8 +337,8 @@ function calculate(d) {
 }
 
 // ── SENSITIVITY ANALYSIS ─────────────────────────────────
-function buildSensitivity(d) {
-  var base = calculate(d);
+function buildSensitivity(d, mkt) {
+  var base = calculate(d, SCENARIOS.none, mkt);
   var scenarios = [
     {label:'Volume +50%',  change:'volume',   val: parseFloat(d.volume)*1.5},
     {label:'Volume -30%',  change:'volume',   val: parseFloat(d.volume)*0.7},
@@ -292,9 +349,56 @@ function buildSensitivity(d) {
   return scenarios.map(function(s) {
     var mod = JSON.parse(JSON.stringify(d));
     mod[s.change] = s.val;
-    var c = calculate(mod);
+    var c = calculate(mod, SCENARIOS.none, mkt);
     return {label:s.label, net_value:c.net_value, verdict:c.verdict, delta:c.net_value - base.net_value};
   });
+}
+
+// ── SHOCK STRESS TEST ────────────────────────────────────
+// Runs the full business case under each named shock and compares the buyer's current
+// (sea-route) supply against near-shored regen NL. The resilience gap is the multi-year argument.
+function buildShockScenarios(d, mkt) {
+  var base = calculate(d, SCENARIOS.none, mkt);
+  var vol  = parseFloat(d.volume) || 100;
+  return ['hormuz','redsea','energy'].map(function(key) {
+    var sc = SCENARIOS[key];
+    var c  = calculate(d, sc, mkt);
+    var inc_logi_delta   = (c.logistics.current_per_tonne - base.logistics.current_per_tonne) * vol;
+    var inc_risk_delta   = c.current_total - base.current_total;
+    var regen_logi_delta = (c.logistics.regen_per_tonne - base.logistics.regen_per_tonne) * vol;
+    var incumbent_extra  = Math.round(inc_risk_delta + inc_logi_delta);
+    var regen_extra      = Math.round(regen_logi_delta);
+    return {
+      key: key, label: sc.label, desc: sc.desc,
+      incumbent_extra_cost: incumbent_extra,            // €/yr extra to stay with current source under shock
+      incumbent_logi_per_t: c.logistics.current_per_tonne,
+      incumbent_logi_base:  base.logistics.current_per_tonne,
+      regen_extra_cost: regen_extra,                    // €/yr — should be near zero
+      regen_logi_per_t: c.logistics.regen_per_tonne,
+      regen_net_value: c.net_value,                     // Orbag regen case under shock (often improves)
+      regen_net_value_base: base.net_value,
+      resilient: Math.abs(regen_extra) <= Math.max(1, Math.abs(incumbent_extra)) * 0.15,
+    };
+  });
+}
+
+// ── LIVE MARKET BENCHMARKS (diesel, carbon) ──────────────
+async function getMarketBenchmarks(supabaseUrl, supabaseKey) {
+  var out = {};
+  if (!supabaseUrl || !supabaseKey) return out;
+  try {
+    var res = await fetch(
+      supabaseUrl + '/rest/v1/intelligence_benchmarks?field_path=in.(MARKET.diesel_eur_l,MARKET.eua_carbon_eur_t)&select=field_path,current_value',
+      {headers: {apikey: supabaseKey, Authorization: 'Bearer ' + supabaseKey}}
+    );
+    if (!res.ok) return out;
+    var rows = await res.json();
+    rows.forEach(function(r) {
+      if (r.field_path === 'MARKET.diesel_eur_l')     out.diesel = Number(r.current_value);
+      if (r.field_path === 'MARKET.eua_carbon_eur_t') out.carbon = Number(r.current_value);
+    });
+  } catch(e) { /* fall back to table defaults */ }
+  return out;
 }
 
 // ── NARRATIVE PROMPT ─────────────────────────────────────
@@ -308,7 +412,9 @@ function buildNarrativePrompt(d, calc, liveContext) {
     + 'DELIVERY: ' + c.processing.delivery_spec + ' | SEASONALITY: ' + c.market.seasonality + ' | SUPPLIERS: ' + c.market.supplier_count + '\n'
     + 'VERDICT: ' + c.verdict + ' | Net value: ' + f(c.net_value) + '/yr | Feasibility: ' + c.feasibility + '/100\n'
     + 'RISK: current ' + f(c.current_total) + '/yr → regen ' + f(c.regen_total) + '/yr | reduction: ' + f(c.risk_reduction) + '/yr\n'
-    + 'LOGISTICS (per tonne): current €' + c.logistics.current_per_tonne + '/t → regen €' + c.logistics.regen_per_tonne + '/t | saving €' + c.logistics.saving_per_tonne + '/t = ' + f(c.logistics.annual_saving) + '/yr\n'    + 'Logistics breakdown current: transport €' + c.logistics.components_current.transport + ' + cold chain €' + c.logistics.components_current.cold_chain + ' + storage €' + c.logistics.components_current.storage + ' + spoilage €' + c.logistics.components_current.spoilage + ' + import €' + c.logistics.components_current.import_duties + '\n'
+    + 'LOGISTICS (per tonne): current €' + c.logistics.current_per_tonne + '/t → regen €' + c.logistics.regen_per_tonne + '/t | saving €' + c.logistics.saving_per_tonne + '/t = ' + f(c.logistics.annual_saving) + '/yr\n'
+    + 'Logistics breakdown current: transport €' + c.logistics.components_current.transport + ' + fuel €' + c.logistics.components_current.fuel + ' + CO2 €' + c.logistics.components_current.emissions_co2 + ' + cold chain €' + c.logistics.components_current.cold_chain + ' + storage €' + c.logistics.components_current.storage + ' + spoilage €' + c.logistics.components_current.spoilage + ' + import €' + c.logistics.components_current.import_duties + '\n'
+    + 'CO2 transport: current ' + c.logistics.co2_kg_current + 'kg/t → regen ' + c.logistics.co2_kg_regen + 'kg/t (scope-3 relevant)\n'
     + 'PREMIUM COST: ' + f(c.prem_annual) + '/yr | PROCESSING SAVING: ' + f(c.proc_annual) + '/yr\n'
     + 'PROCESSING: tare ' + f(c.processing.tare_saving_per_tonne) + '/t, DM ' + f(c.processing.dm_value_per_tonne) + '/t, defect ' + f(c.processing.defect_saving_per_tonne) + '/t (' + c.processing.confidence + ' conf.)\n'
     + 'CARBON: ' + f(c.carbon.buyer_share_30pct) + '/yr buyer share on ' + c.carbon.ha_needed + ' ha\n'
@@ -362,10 +468,14 @@ module.exports = async function handler(req, res) {
   try {
     var d = req.body;
 
-    // Step 1: JS calculation — instant
-    var calc = calculate(d);
-    var sensitivity = buildSensitivity(d);
-    console.log('calc verdict:', calc.verdict, 'net_value:', calc.net_value);
+    // Step 0: live market benchmarks (diesel, carbon) from intelligence_benchmarks
+    var mkt = await getMarketBenchmarks(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
+
+    // Step 1: JS calculation — instant (uses live market overrides where available)
+    var calc = calculate(d, SCENARIOS.none, mkt);
+    var sensitivity = buildSensitivity(d, mkt);
+    var shockScenarios = buildShockScenarios(d, mkt);
+    console.log('calc verdict:', calc.verdict, 'net_value:', calc.net_value, 'mkt:', JSON.stringify(mkt));
 
     // Step 2: live farmer context
     var liveContext = await getLiveContext(d.crop, process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
@@ -434,6 +544,10 @@ module.exports = async function handler(req, res) {
         transit_days_current: calc.logistics.transit_days_current,
         buffer_weeks_current: calc.logistics.buffer_weeks_current,
         components: calc.logistics.components_current,
+        components_regen: calc.logistics.components_regen,
+        co2_kg_current: calc.logistics.co2_kg_current,
+        co2_kg_regen: calc.logistics.co2_kg_regen,
+        co2_saving_kg_per_tonne: calc.logistics.co2_saving_kg_per_tonne,
       },
       processing_economics: {
         tare_saving_per_tonne: '€' + calc.processing.tare_saving_per_tonne + '/t',
@@ -457,6 +571,7 @@ module.exports = async function handler(req, res) {
         note: nar.carbon_note || '',
       },
       sensitivity: sensitivity,
+      scenario_stress: shockScenarios,
       supply_analysis: nar.supply_analysis,
       pricing_analysis: nar.pricing_analysis,
       logistics_note: nar.logistics_note,
