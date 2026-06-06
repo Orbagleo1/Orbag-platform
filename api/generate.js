@@ -91,11 +91,12 @@ var LOGISTICS = {
   // ~20x across modes; logiComponents selects road/sea per route's isSea flag.
   fuel: {
     diesel_price_eur_l:   1.65,   // EU avg diesel ~2024; live-fed via intelligence pipeline (mkt.diesel)
-    // Diesel LITRES per tonne-km, mode-split. Road ~12x sea; sea actually burns HFO/VLSFO
-    // (diesel price used as energy proxy). LOW confidence: no direct litres/tkm source survived
-    // verification — magnitudes derived from the verified CO2 modal gap; relative ordering solid.
-    intensity_road_l_per_t_km: 0.025,  // ~30L/100km / ~12t payload (engineering back-of-envelope)
-    intensity_sea_l_per_t_km:  0.002,  // deep-sea bunker per tonne-km, diesel-equivalent proxy
+    // Diesel LITRES per tonne-km, mode-split. HIGH confidence (CE Delft STREAM 2020, ICCT, UK DfT):
+    // heavy artic ~1.2-1.4 MJ/tkm ÷ 36 MJ/L diesel = 0.033-0.039; set 0.030 for medium fleet load +
+    // efficiency trend. Sea = mid-size bulker 0.09 MJ/tkm ÷ 40 MJ/L = 0.0022 (near-exact match);
+    // sea burns HFO/VLSFO not diesel, so the diesel price is an energy proxy. src: CE Delft STREAM 2020.
+    intensity_road_l_per_t_km: 0.030,  // CE Delft STREAM 2020 (range 0.025-0.036)
+    intensity_sea_l_per_t_km:  0.002,  // CE Delft mid-size bulker (range 0.002-0.008 incl. general-cargo)
   },
   emissions: {
     // Well-to-wheel kgCO2e per tonne-km, mode-split. HIGH confidence (EEA/CE Delft EU-27 2018,
@@ -116,16 +117,21 @@ var LOGISTICS = {
   // 17-28% of base FEU but only part-year; road contract rates +~2% Q4'25 -> 0.08 mid-point.
   // src: Drewry WCI (Jun 2026), IRU Q4 2025 benchmark, Seatrade peak-season.
   peak_surcharge_pct: 0.08,
-  // Transit-time spoilage curve (%/day) by delivery spec — replaces flat region rate. Relative
-  // ordering (fresh >> frozen >> canned/dried) validated vs cold-chain literature; per-day
-  // magnitudes UNVERIFIED (no FAO/WUR in-transit rate survived) — retained provisionally (LOW).
+  // Transit-time spoilage curve (%/day) by delivery spec. Relative ordering (fresh >> frozen >>
+  // canned/dried) confirmed — green beans/legumes are highly perishable, few-days shelf life
+  // (NC State Extension, FAO). Per-day MAGNITUDES remain unsourced: a targeted FAO/WUR search
+  // (2026-06) found no in-transit %/day primary; four shelf-life-to-decay conversions were refuted.
+  // Retained as LOW-confidence placeholder. src: NC State green-bean/field-pea postharvest.
   spoilage_per_day: {fresh:0.006, frozen:0.0008, canned:0.0002, dried:0.0002, any:0.003},
   spoilage_cap: 0.10,
-  // Packaging (per tonne) by delivery spec. UNVERIFIED (LOW): no agri packaging €/t benchmark
-  // survived verification; ordering plausible, €4-9/t low but not implausible for bulk transport.
+  // Packaging (per tonne) by delivery spec. LOW: targeted search (2026-06) found no usable current
+  // benchmark — the only FAO packaging-cost table is 1988-dollar (X5016E06, unusable without ~2.6x
+  // inflation + USD->EUR) and a FIBC bulk-bag quote was refuted as single-vendor. Ordering plausible,
+  // €4-9/t magnitude not implausible for bulk transport packaging; retained as placeholder.
   packaging_eur_t: {fresh:9, frozen:6, canned:5, dried:4, any:6},
   // Reverse logistics as % of forward transport. Bulk agri returns << retail/e-commerce (10-30%);
-  // 0.02 is a sound low placeholder (range 0.01-0.03), UNVERIFIED magnitude (LOW, domain reasoning).
+  // targeted search (2026-06) found no RTP-pooling/CHEP-IFCO cost-share primary. 0.02 retained as a
+  // sound low placeholder (range 0.01-0.03), LOW confidence (domain reasoning only).
   returns_pct: 0.02,
 };
 

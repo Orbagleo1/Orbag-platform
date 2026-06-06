@@ -885,7 +885,7 @@ function renderReport(d, fd) {
         </div>
       </div>
       ${d.logistics_note ? `<div style="margin-top:10px;font-size:13px;color:var(--stone)">${d.logistics_note}</div>` : ''}
-      <div style="margin-top:8px;font-size:11px;color:var(--stone);font-style:italic">CO₂ and freight-utilisation factors are mode-split (road vs sea) and sourced from EEA/CE Delft, GLEC and Eurostat 2024; fuel, spoilage, packaging and reverse-logistics coefficients are domain estimates pending primary sourcing. Diesel and carbon prices are live inputs.</div>
+      <div style="margin-top:8px;font-size:11px;color:var(--stone);font-style:italic">CO₂, fuel-intensity and freight-utilisation factors are mode-split (road vs sea) and sourced from CE Delft, EEA, GLEC and Eurostat; spoilage, packaging and reverse-logistics coefficients remain domain estimates pending primary sourcing. Diesel and carbon prices are live inputs.</div>
     </div>` : ''}
 
     ${d.scenario_stress && d.scenario_stress.length ? `
