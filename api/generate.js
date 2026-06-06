@@ -3,15 +3,17 @@
 // Two-call design — no token ceiling on calculation complexity
 
 // ── BENCHMARK DATA ───────────────────────────────────────
+// Each crop carries a source comment (value provenance + date). Crops marked UNVERIFIED
+// are internal estimates pending KWIN-AGV/WUR validation — do not cite as authoritative.
 var KWIN = {
-  green_beans: {yield_ha:10000, price_conv:330, price_bio:420, cost_ha:2100, tare_conv:18, tare_regen:13, dm_gain:10, defect_conv:8,  defect_regen:4,  nitrate_risk:'medium', nitrate_reject_conv:0.040, nitrate_reject_regen:0.004, nitrate_cost:25000},
-  wheat:       {yield_ha:9200,  price_conv:230, price_bio:340, cost_ha:1400, tare_conv:0,  tare_regen:0,  dm_gain:7,  defect_conv:5,  defect_regen:2,  nitrate_risk:'low',    nitrate_reject_conv:0.010, nitrate_reject_regen:0.001, nitrate_cost:10000},
-  potatoes:    {yield_ha:49500, price_conv:170, price_bio:220, cost_ha:3300, tare_conv:12, tare_regen:11, dm_gain:2,  defect_conv:7,  defect_regen:5,  nitrate_risk:'low',    nitrate_reject_conv:0.010, nitrate_reject_regen:0.001, nitrate_cost:15000},
-  onions:      {yield_ha:62000, price_conv:140, price_bio:180, cost_ha:2800, tare_conv:10, tare_regen:8,  dm_gain:3,  defect_conv:8,  defect_regen:5,  nitrate_risk:'low',    nitrate_reject_conv:0.010, nitrate_reject_regen:0.001, nitrate_cost:10000},
-  lentils:     {yield_ha:4500,  price_conv:420, price_bio:700, cost_ha:1000, tare_conv:12, tare_regen:9,  dm_gain:9,  defect_conv:7,  defect_regen:3,  nitrate_risk:'low',    nitrate_reject_conv:0.008, nitrate_reject_regen:0.001, nitrate_cost:10000},
-  oats:        {yield_ha:5200,  price_conv:210, price_bio:320, cost_ha:950,  tare_conv:0,  tare_regen:0,  dm_gain:6,  defect_conv:4,  defect_regen:2,  nitrate_risk:'low',    nitrate_reject_conv:0.008, nitrate_reject_regen:0.001, nitrate_cost:8000},
-  peas:        {yield_ha:5000,  price_conv:420, price_bio:700, cost_ha:1000, tare_conv:12, tare_regen:9,  dm_gain:9,  defect_conv:7,  defect_regen:3,  nitrate_risk:'low',    nitrate_reject_conv:0.008, nitrate_reject_regen:0.001, nitrate_cost:10000},
-  carrots:     {yield_ha:80000, price_conv:100, price_bio:140, cost_ha:2200, tare_conv:15, tare_regen:13, dm_gain:3,  defect_conv:10, defect_regen:6,  nitrate_risk:'low',    nitrate_reject_conv:0.010, nitrate_reject_regen:0.001, nitrate_cost:8000},
+  green_beans: {yield_ha:10000, price_conv:330, price_bio:420, cost_ha:2100, tare_conv:18, tare_regen:13, dm_gain:10, defect_conv:8,  defect_regen:4,  nitrate_risk:'medium', nitrate_reject_conv:0.040, nitrate_reject_regen:0.004, nitrate_cost:25000}, // src: internal estimate — UNVERIFIED (flag for KWIN-AGV review)
+  wheat:       {yield_ha:9400,  price_conv:230, price_bio:340, cost_ha:1400, tare_conv:0,  tare_regen:0,  dm_gain:7,  defect_conv:5,  defect_regen:2,  nitrate_risk:'low',    nitrate_reject_conv:0.010, nitrate_reject_regen:0.001, nitrate_cost:10000}, // src: BIJ12 KWIN-AGV 2024 — yield 9,400 kg/ha, price €0.23/kg (=€230/t)
+  potatoes:    {yield_ha:49500, price_conv:170, price_bio:220, cost_ha:3300, tare_conv:12, tare_regen:11, dm_gain:2,  defect_conv:7,  defect_regen:5,  nitrate_risk:'low',    nitrate_reject_conv:0.010, nitrate_reject_regen:0.001, nitrate_cost:15000}, // src: internal estimate — UNVERIFIED
+  onions:      {yield_ha:47000, price_conv:130, price_bio:180, cost_ha:8507, tare_conv:10, tare_regen:8,  dm_gain:3,  defect_conv:8,  defect_regen:5,  nitrate_risk:'low',    nitrate_reject_conv:0.010, nitrate_reject_regen:0.001, nitrate_cost:10000}, // src: KWIN/market avg 2023-2024 — yield 47 t/ha, kostprijs €181/t (=€8,507/ha), price_conv €130/t
+  lentils:     {yield_ha:4500,  price_conv:420, price_bio:700, cost_ha:1000, tare_conv:12, tare_regen:9,  dm_gain:9,  defect_conv:7,  defect_regen:3,  nitrate_risk:'low',    nitrate_reject_conv:0.008, nitrate_reject_regen:0.001, nitrate_cost:10000}, // src: internal estimate — UNVERIFIED
+  oats:        {yield_ha:5200,  price_conv:210, price_bio:320, cost_ha:950,  tare_conv:0,  tare_regen:0,  dm_gain:6,  defect_conv:4,  defect_regen:2,  nitrate_risk:'low',    nitrate_reject_conv:0.008, nitrate_reject_regen:0.001, nitrate_cost:8000}, // src: internal estimate — UNVERIFIED
+  peas:        {yield_ha:5000,  price_conv:420, price_bio:700, cost_ha:1000, tare_conv:12, tare_regen:9,  dm_gain:9,  defect_conv:7,  defect_regen:3,  nitrate_risk:'low',    nitrate_reject_conv:0.008, nitrate_reject_regen:0.001, nitrate_cost:10000}, // src: internal estimate — UNVERIFIED
+  carrots:     {yield_ha:80000, price_conv:100, price_bio:140, cost_ha:2200, tare_conv:15, tare_regen:13, dm_gain:3,  defect_conv:10, defect_regen:6,  nitrate_risk:'low',    nitrate_reject_conv:0.010, nitrate_reject_regen:0.001, nitrate_cost:8000}, // src: internal estimate — UNVERIFIED
 };
 
 // ── DELIVERY SPEC MODIFIERS ──────────────────────────────
@@ -42,7 +44,7 @@ var SEASON_MOD = {
 // ── RISK PERCENTAGES ─────────────────────────────────────
 var RISK_PCT = {
   geopolitical: {morocco_egypt:0.15, turkey_spain:0.08, netherlands:0.02, mixed_eu:0.045, mixed_global:0.115},
-  weather_conv: {morocco_egypt:0.32, turkey_spain:0.22, netherlands:0.20, mixed_eu:0.18, mixed_global:0.25},
+  weather_conv: {morocco_egypt:0.30, turkey_spain:0.22, netherlands:0.20, mixed_eu:0.18, mixed_global:0.25}, // morocco_egypt: JRC MARS drought data 2024 (was 0.32)
   weather_regen: 0.12,
   recall_conv:  {none:0.003, minor:0.012, moderate:0.035, major:0.09},
   recall_regen: 0.0008,
@@ -83,7 +85,9 @@ var LOGISTICS = {
   internal_saving_pct: 0.15,
 };
 
-var CARBON_POTENTIAL = {green_beans:40, wheat:55, potatoes:35, onions:30, lentils:65, oats:50, peas:65, carrots:35};
+// Carbon €/ha/yr — capped at max €15 (Rabobank sequestration data + VCM price €5/ton CO2, 2024).
+// Scaled to the €15 ceiling, legumes (N-fixing) highest. Was 30–65/ha (unsourced).
+var CARBON_POTENTIAL = {green_beans:9, wheat:13, potatoes:8, onions:7, lentils:15, oats:12, peas:15, carrots:8};
 var PROCESSING_CONF  = {green_beans:'HIGH', peas:'HIGH', lentils:'HIGH', wheat:'HIGH', oats:'MEDIUM', carrots:'LOW', potatoes:'LOW', onions:'LOW'};
 
 // ── MAIN CALCULATION ENGINE ──────────────────────────────
