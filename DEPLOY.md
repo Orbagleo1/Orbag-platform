@@ -126,7 +126,7 @@ To change what the AI generates:
 
 Vercel free tier: 100GB bandwidth/month, 100 deployments/month — more than enough
 Supabase free tier: 500MB database, 50,000 rows — enough for hundreds of reports
-Anthropic API: ~€0.01 per report (one cent) with claude-sonnet-4-6
+Anthropic API: ~€0.01 per report (one cent) — farmer.js on claude-sonnet-4-6, generate.js on claude-haiku-4-5
 
 Total monthly cost for the demo phase: €0 platform + a few cents per report
 
@@ -139,4 +139,4 @@ Total monthly cost for the demo phase: €0 platform + a few cents per report
 3. Most common issues:
    - ANTHROPIC_API_KEY not set → go back to Step 4
    - Supabase URL wrong → check for trailing slash (remove it)
-   - "Model not found" → check api/generate.js has claude-sonnet-4-6
+   - "Model not found" → check api/farmer.js has claude-sonnet-4-6 and api/generate.js has claude-haiku-4-5
