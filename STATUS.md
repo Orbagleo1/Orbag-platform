@@ -2,7 +2,7 @@
 
 _Living progress doc. Connected to the claude.ai Orbag Project via the GitHub connector so "where we are" is always visible there._
 
-**Last updated:** 2026-06-06 (buyer engine: extended logistics + shock scenarios + live market)
+**Last updated:** 2026-06-06 (logistics coefficients calibrated — CO₂ + fuel mode-split road/sea)
 
 Legend: ✅ done & verified · 🟡 in progress · ⬜ planned / backlog
 

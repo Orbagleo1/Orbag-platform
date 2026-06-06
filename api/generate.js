@@ -84,27 +84,49 @@ var LOGISTICS = {
   // Internal logistics saving from shorter supply chain (% of transport cost)
   internal_saving_pct: 0.15,
 
-  // ── EXTENDED LOGISTICS VARIABLES (added 2026-06) ──
-  // NOTE: all coefficients below are UNVERIFIED placeholders — structurally wired in,
-  // but the numbers still need sourcing (energy index, EU ETS, freight benchmarks).
+  // ── EXTENDED LOGISTICS VARIABLES ──
+  // CALIBRATED 2026-06-06 via multi-source deep research (EEA/CE Delft, GLEC July 2022,
+  // Eurostat 2024, Drewry WCI, IRU Q4 2025; 20/25 claims adversarially verified).
+  // CO2 + fuel are now MODE-SPLIT (road vs sea) — a single uniform factor was wrong by
+  // ~20x across modes; logiComponents selects road/sea per route's isSea flag.
   fuel: {
-    diesel_price_eur_l:   1.65,   // UNVERIFIED — EU avg diesel ~2024; TODO: live energy index
-    intensity_l_per_t_km: 0.004,  // UNVERIFIED — blended road/sea litres per tonne-km
+    diesel_price_eur_l:   1.65,   // EU avg diesel ~2024; live-fed via intelligence pipeline (mkt.diesel)
+    // Diesel LITRES per tonne-km, mode-split. Road ~12x sea; sea actually burns HFO/VLSFO
+    // (diesel price used as energy proxy). LOW confidence: no direct litres/tkm source survived
+    // verification — magnitudes derived from the verified CO2 modal gap; relative ordering solid.
+    intensity_road_l_per_t_km: 0.025,  // ~30L/100km / ~12t payload (engineering back-of-envelope)
+    intensity_sea_l_per_t_km:  0.002,  // deep-sea bunker per tonne-km, diesel-equivalent proxy
   },
   emissions: {
-    co2_kg_per_t_km:    0.062,    // UNVERIFIED — blended freight CO2 (road ~0.062, sea ~0.01)
-    carbon_price_eur_t: 80,       // UNVERIFIED — EU ETS ~2024; CSRD scope-3 shadow price
+    // Well-to-wheel kgCO2e per tonne-km, mode-split. HIGH confidence (EEA/CE Delft EU-27 2018,
+    // IPCC AR4): HGV 0.137 fleet-avg (ICCT long-haul ~0.05-0.06) -> 0.110 for NL+EU road legs;
+    // total maritime 0.0066 (container 0.0082, bulk 0.0045) -> 0.008. Old uniform 0.062 understated
+    // road ~2.2x and overstated sea ~9x. src: cedelft.eu GHG-efficiency 2021, GLEC July 2022.
+    co2_road_kg_per_t_km: 0.110,
+    co2_sea_kg_per_t_km:  0.008,
+    carbon_price_eur_t: 80,       // EU ETS ~2024 / CSRD scope-3 shadow price; live-fed via mkt.carbon
   },
-  // Vehicle/container utilisation 0-1 (lower = more empty running -> higher per-tonne cost)
-  load_factor: {morocco_egypt:0.90, turkey_spain:0.88, netherlands:0.75, mixed_eu:0.82, mixed_global:0.92}, // UNVERIFIED
-  // Annualised average seasonal/peak freight surcharge on haulage
-  peak_surcharge_pct: 0.08,       // UNVERIFIED
-  // Transit-time spoilage curve (%/day) by delivery spec — replaces flat region rate
-  spoilage_per_day: {fresh:0.006, frozen:0.0008, canned:0.0002, dried:0.0002, any:0.003}, // UNVERIFIED
+  // Vehicle/container utilisation 0-1 (lower = more empty running -> higher per-tonne cost).
+  // Eurostat 2024: national/short-haul road 25.8% empty (~0.74) vs international 12.6% (~0.87);
+  // short-road < long-haul ordering CONFIRMED (HIGH). Maritime lowered from 0.88-0.92 (MEDIUM):
+  // GLEC 70% container default was refuted as a clean benchmark and laden trips run ~50-60% loaded,
+  // so 0.70-0.80 is realistic for sea. src: Eurostat road-freight journey characteristics 2024.
+  load_factor: {morocco_egypt:0.78, turkey_spain:0.80, netherlands:0.75, mixed_eu:0.82, mixed_global:0.78},
+  // Annualised average seasonal/peak freight surcharge on haulage. HIGH: maritime PSS spikes
+  // 17-28% of base FEU but only part-year; road contract rates +~2% Q4'25 -> 0.08 mid-point.
+  // src: Drewry WCI (Jun 2026), IRU Q4 2025 benchmark, Seatrade peak-season.
+  peak_surcharge_pct: 0.08,
+  // Transit-time spoilage curve (%/day) by delivery spec — replaces flat region rate. Relative
+  // ordering (fresh >> frozen >> canned/dried) validated vs cold-chain literature; per-day
+  // magnitudes UNVERIFIED (no FAO/WUR in-transit rate survived) — retained provisionally (LOW).
+  spoilage_per_day: {fresh:0.006, frozen:0.0008, canned:0.0002, dried:0.0002, any:0.003},
   spoilage_cap: 0.10,
-  // Packaging (per tonne) by delivery spec + reverse logistics as % of transport
-  packaging_eur_t: {fresh:9, frozen:6, canned:5, dried:4, any:6}, // UNVERIFIED
-  returns_pct: 0.02,              // UNVERIFIED — reverse logistics share of transport
+  // Packaging (per tonne) by delivery spec. UNVERIFIED (LOW): no agri packaging €/t benchmark
+  // survived verification; ordering plausible, €4-9/t low but not implausible for bulk transport.
+  packaging_eur_t: {fresh:9, frozen:6, canned:5, dried:4, any:6},
+  // Reverse logistics as % of forward transport. Bulk agri returns << retail/e-commerce (10-30%);
+  // 0.02 is a sound low placeholder (range 0.01-0.03), UNVERIFIED magnitude (LOW, domain reasoning).
+  returns_pct: 0.02,
 };
 
 // Carbon €/ha/yr — capped at max €15 (Rabobank sequestration data + VCM price €5/ton CO2, 2024).
@@ -243,8 +265,10 @@ function calculate(d, sc, mkt) {
     var freightM   = isSea ? sc.freight_mult : 1;          // maritime shocks hit sea routes only
     var transitDay = t.transit_days + (isSea ? sc.transit_add_days : 0);
     var transport = Math.round(t.cost_per_t * freightM);
-    var fuel      = Math.round(t.distance_km * LOGISTICS.fuel.intensity_l_per_t_km * diesel * sc.fuel_mult);
-    var co2_kg    = Math.round(t.distance_km * LOGISTICS.emissions.co2_kg_per_t_km);
+    var fuelInt   = isSea ? LOGISTICS.fuel.intensity_sea_l_per_t_km : LOGISTICS.fuel.intensity_road_l_per_t_km;
+    var fuel      = Math.round(t.distance_km * fuelInt * diesel * sc.fuel_mult);
+    var co2Fac    = isSea ? LOGISTICS.emissions.co2_sea_kg_per_t_km : LOGISTICS.emissions.co2_road_kg_per_t_km;
+    var co2_kg    = Math.round(t.distance_km * co2Fac);
     var emissions = Math.round(co2_kg / 1000 * carbon);
     var lf        = LOGISTICS.load_factor[sourceKey] != null ? LOGISTICS.load_factor[sourceKey] : 0.85;
     var load_pen  = Math.round((transport + fuel) * (1 / lf - 1));
