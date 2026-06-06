@@ -119,17 +119,28 @@ var SEA_ROUTES = {morocco_egypt:true, turkey_spain:true, mixed_global:true};
 // ── SHOCK SCENARIO LIBRARY ───────────────────────────────
 // Named forward-looking stress tests. Each shock applies multipliers/additions to the
 // existing risk + logistics layers. Sea-route sources are hit; near-shored NL barely moves.
-// COEFFICIENTS UNVERIFIED — calibration is a research task (see scenario sourcing TODO).
+// CALIBRATED 2026-06-06 via multi-source deep research (24/25 claims adversarially verified).
+// fuel_mult referent = EU PUMP DIESEL (logiComponents applies it to the diesel price).
+// Sources: EIA, IRU, Eurostat, ITF-OECD, Drewry, FAO, IMF, World Bank, Springer ME&L 2024.
+// geo_risk_add stays EXPERT-PRIOR (LOW confidence): relative ordering is evidence-backed
+// (mixed_global >= morocco_egypt > turkey_spain) but absolute values are not source-grounded
+// (TODO: anchor to war-risk insurance surcharges on Red Sea/Hormuz transits).
 var SCENARIOS = {
   none:   {label:'Base case (no shock)',           desc:'', fuel_mult:1,    freight_mult:1,   transit_add_days:0,  price_vol_mult:1,    geo_risk_add:{}},
+  // Hormuz: EU diesel +26-29% live 2026 (IRU) -> 1.30; Gulf->ARA Cape reroute +16d (EIA);
+  // freight 1.60 conservative vs 2.3-4.4x peaks; price_vol from FAO/IMF transmission.
   hormuz: {label:'Strait of Hormuz closure',       desc:'Oil/energy spike + maritime disruption + rerouting around Africa',
-           fuel_mult:1.45, freight_mult:1.60, transit_add_days:18, price_vol_mult:1.35,
+           fuel_mult:1.30, freight_mult:1.60, transit_add_days:16, price_vol_mult:1.30,
            geo_risk_add:{morocco_egypt:0.10, turkey_spain:0.06, mixed_global:0.12, mixed_eu:0.01, netherlands:0.00}},
+  // Red Sea: best-validated scenario. transit +12d exact (Springer ME&L 2024); freight 1.40
+  // (+130% containers Nov'23->Mar'24, Drewry); fuel 1.20 (tankers +20%, EIA).
   redsea: {label:'Red Sea / Suez disruption',      desc:'Cape rerouting — freight and transit up across maritime routes',
            fuel_mult:1.20, freight_mult:1.40, transit_add_days:12, price_vol_mult:1.20,
            geo_risk_add:{morocco_egypt:0.05, turkey_spain:0.04, mixed_global:0.08, mixed_eu:0.01, netherlands:0.00}},
+  // Energy: road diesel +45.2% peak 2022 (Eurostat) -> 1.45; road freight pass-through only
+  // ~+2.3% (IRU) so sea freight 1.08; price_vol 1.15 (IMF).
   energy: {label:'EU energy price spike',          desc:'Diesel/gas surge — all transport up, sea and land',
-           fuel_mult:1.60, freight_mult:1.15, transit_add_days:0,  price_vol_mult:1.15,
+           fuel_mult:1.45, freight_mult:1.08, transit_add_days:0,  price_vol_mult:1.15,
            geo_risk_add:{}},
 };
 
