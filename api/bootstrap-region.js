@@ -69,19 +69,20 @@ async function latestCerealYield(iso3){
   return v ? Number(v.value) : null;  // kg/ha
 }
 
-async function sbUpsert(url, key, table, rows, onConflict){
-  var q = '/rest/v1/' + table + (onConflict ? ('?on_conflict=' + onConflict) : '');
-  var r = await fetch(url + q, {
+// Persist via the SECURITY DEFINER RPC bootstrap_region — SUPABASE_KEY is the ANON key, which RLS
+// blocks from writing benchmark tables directly. The function only ever touches provisional rows.
+async function sbBootstrap(url, key, regionRow, cropRows){
+  var r = await fetch(url + '/rest/v1/rpc/bootstrap_region', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'apikey': key,
       'Authorization': 'Bearer ' + key,
-      'Prefer': 'resolution=merge-duplicates,return=minimal',
     },
-    body: JSON.stringify(rows),
+    body: JSON.stringify({ p_region: regionRow, p_crops: cropRows || [] }),
   });
-  return r.ok;
+  if (!r.ok) return { ok: false, error: 'rpc ' + r.status, detail: await r.text().catch(function(){return '';}) };
+  return { ok: true, result: await r.json().catch(function(){return null;}) };
 }
 
 module.exports = async function handler(req, res){
@@ -100,13 +101,8 @@ module.exports = async function handler(req, res){
 
     var SB_URL = process.env.SUPABASE_URL, SB_KEY = process.env.SUPABASE_KEY;
     if (!SB_URL || !SB_KEY) return res.status(500).json({error:'Supabase not configured'});
-
-    // Idempotency: if this region already exists and is not provisional, do not overwrite curated data.
-    var existing = await wbJson(SB_URL + '/rest/v1/region_coefficients?region_key=eq.' + encodeURIComponent(regionKey) + '&select=region_key,status');
-    // (wbJson works for any JSON GET; reuse it. existing may be [] or [{...}])
-    if (existing && existing[0] && existing[0].status && existing[0].status !== 'provisional') {
-      return res.status(200).json({region_key: regionKey, status: existing[0].status, note: 'already curated — left untouched'});
-    }
+    // Idempotency / curated-protection is enforced inside the bootstrap_region() RPC: it only ever
+    // writes provisional rows and never overwrites a curated region.
 
     // 1. Resolve country via World Bank.
     var c = await resolveCountry(countryInput);
@@ -161,14 +157,15 @@ module.exports = async function handler(req, res){
       });
     }
 
-    // 4. Persist (service role bypasses RLS).
-    var okRegion = await sbUpsert(SB_URL, SB_KEY, 'region_coefficients', [regionRow], 'region_key');
-    var okCrops = cropRows.length ? await sbUpsert(SB_URL, SB_KEY, 'regional_crop_data', cropRows, 'crop_region,crop') : true;
+    // 4. Persist via the SECURITY DEFINER RPC (anon key cannot write the tables directly).
+    var saved = await sbBootstrap(SB_URL, SB_KEY, regionRow, cropRows);
 
-    return res.status(200).json({
+    return res.status(saved.ok ? 200 : 500).json({
       region_key: regionKey,
       resolved: {country: c.name, iso3: iso3, is_eu: isEu, distance_km: distance, income: c.incomeLevel && c.incomeLevel.value},
-      written: {region_coefficients: okRegion, regional_crop_data: okCrops, crops: cropRows.map(function(r){return r.crop;})},
+      written: saved.ok,
+      crops: cropRows.map(function(r){return r.crop;}),
+      db: saved.ok ? saved.result : (saved.error + ' ' + (saved.detail||'')),
       status: 'provisional',
       next: 'queued for deep-research sharpening; price/variable-cost and per-crop yields pending (FAOSTAT/Statista/Hanze)',
     });
