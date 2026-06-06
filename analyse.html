@@ -322,9 +322,9 @@ window._orbagUserId = null;
 (async () => {
   const { data: { session } } = await _SB.auth.getSession();
   if (!session) { window.location.href = '/account?next=/analyse'; return; }
-  // Role check — buyers only
+  // Any logged-in user may run the buyer analysis. Role is used only for prefill
+  // and as the default landing page after login — never to block navigation.
   const { data: p } = await _SB.from('profiles').select('name,role,company,sector').eq('id', session.user.id).single();
-  if (p && p.role === 'farmer') { window.location.href = '/boer'; return; }
   window._orbagUserId = session.user.id;
   // Nav
   const el = document.getElementById('navAuth');
@@ -1037,7 +1037,7 @@ async function generate() {
 
     if(!res.ok) {
       const err = await res.json().catch(()=>({}));
-      throw new Error(err.error?.message || `API error ${res.status}`);
+      throw new Error(err.error || `API error ${res.status}`);
     }
 
     const report = await res.json();

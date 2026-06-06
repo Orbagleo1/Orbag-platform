@@ -140,8 +140,7 @@ function calculate(d) {
   var nit_regen    = Math.round(k.nitrate_reject_regen * k.nitrate_cost);
   var nit_basis    = Math.round(k.nitrate_reject_conv*100) + '% rejection risk × €' + k.nitrate_cost.toLocaleString() + '/incident for ' + crop.replace('_',' ');
 
-  // 8. Logistics saving (near-shoring benefit)
-  var logistics_save = logistics_save_annual;
+  // 8. Logistics saving (near-shoring benefit) — computed below at line ~192
 
   var current_total = geo_current + wthr_current + qual_current + pvol_current + csrd_current + conc_current + nit_current;
   var regen_total   = geo_regen   + wthr_regen   + qual_regen   + pvol_regen   + csrd_regen   + conc_regen   + nit_regen;
@@ -237,7 +236,7 @@ function calculate(d) {
 
   return {
     verdict, feasibility, net_value,
-    risk_reduction, prem_annual, proc_annual, logistics_save,
+    risk_reduction, prem_annual, proc_annual, logistics_save: logistics_save_annual,
     current_total, regen_total,
     layers: [
       {layer:'Geopolitical',     current:geo_current,  regen:geo_regen,  reduction:geo_current-geo_regen,  basis:geo_basis},

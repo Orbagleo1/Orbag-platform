@@ -145,9 +145,9 @@ const REGION_MAP = {
 (async () => {
   const { data: { session } } = await _SB.auth.getSession();
   if (!session) { window.location.href = '/account?next=/boer'; return; }
-  // Role check — farmers only
+  // Any logged-in user may run the farmer analysis. Role is used only for prefill
+  // and as the default landing page after login — never to block navigation.
   const { data: p } = await _SB.from('profiles').select('*').eq('id', session.user.id).single();
-  if (p && p.role === 'buyer') { window.location.href = '/analyse'; return; }
   window._orbagUserId = session.user.id;
   // Nav
   const el = document.getElementById('navAuth');
@@ -402,6 +402,7 @@ function getFormData() {
   const crops = Array.from(document.querySelectorAll('#cropChecks input:checked')).map(c=>c.value);
   return {
     type: 'farmer',
+    user_id:        window._orbagUserId || null,
     farmName:       document.getElementById('farmName').value || 'Your farm',
     farmRegion:     document.getElementById('farmRegion').value,
     totalHa:        parseInt(document.getElementById('totalHa').value) || 85,
