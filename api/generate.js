@@ -541,7 +541,7 @@ function buildNarrativePrompt(d, calc, liveContext) {
     + 'Write concise, CFO-level analysis. Return JSON:\n'
     + '{"verdict_reason":"one sentence citing net value",'
     + '"supply_analysis":"2-3 sentences on regional supply capacity, farm availability, seasonality fit",'
-    + '"pricing_analysis":"2-3 sentences on KWIN price, regen estimate, whether premium tolerance is sufficient",'
+    + '"pricing_analysis":"2-3 sentences: name the production benchmark source shown above, give the conventional vs regen estimate, and state whether premium tolerance is sufficient",'
     + '"processing_insight":"2-3 sentences on tare/DM/defect advantage for ' + c.processing.sector_label + ' using ' + c.processing.delivery_spec + '. State net cost per unit finished product.",'
     + '"logistics_note":"1-2 sentences on near-shoring logistics saving and transport risk reduction",'
     + '"carbon_note":"1-2 sentences on carbon credit structure and buyer share",'
@@ -636,6 +636,7 @@ module.exports = async function handler(req, res) {
       kpis: {
         feasibility_score: calc.feasibility,
         price_range: '€' + calc.market.kwin_conv_price + '–' + calc.market.regen_price_est + '/t',
+        benchmark_source: calc.market.crop_source || 'KWIN-AGV 2024',
         available_farms: calc.market.available_farms,
         supply_reliability: calc.feasibility > 70 ? 'High' : calc.feasibility > 50 ? 'Medium' : 'Low',
         regen_premium: '€' + calc.processing.premium_cost_per_tonne + '/t (+' + calc.market.premium_pct + '%)',

@@ -750,7 +750,7 @@ function renderReport(d, fd) {
         <div class="kpi-card">
           <div class="kpi-label">Price range</div>
           <div class="kpi-val" style="font-size:18px">${k.price_range}</div>
-          <div class="kpi-sub">Regen premium included</div>
+          <div class="kpi-sub">Benchmark: ${k.benchmark_source || 'KWIN-AGV 2024'}</div>
         </div>
         <div class="kpi-card">
           <div class="kpi-label">Matching farms</div>
@@ -929,7 +929,7 @@ function renderReport(d, fd) {
     </div>
 
     <div class="report-footer">
-      <div class="footer-note">AI-generated preliminary analysis using KWIN benchmark data and regional supply intelligence. Figures are indicative — precise terms subject to farm-level businesscase and contract negotiation.</div>
+      <div class="footer-note">AI-generated preliminary analysis using regional benchmark data (KWIN-AGV NL / AHDB Farmbench UK) and regional supply intelligence. Figures are indicative — precise terms subject to farm-level businesscase and contract negotiation.</div>
       <div style="display:flex;gap:8px;flex-shrink:0">
         <button class="btn-outline" onclick="resetForm()">New report</button>
         <button class="btn-outline" onclick="window.print()">Print / save PDF</button>
