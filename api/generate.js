@@ -809,10 +809,11 @@ module.exports = async function handler(req, res) {
 
     // Save to Supabase
     if (process.env.SUPABASE_URL && process.env.SUPABASE_KEY) {
-      await fetch(process.env.SUPABASE_URL + '/rest/v1/reports', {
+      // Persist via the bounded save_report RPC — the anon key cannot insert into reports directly.
+      await fetch(process.env.SUPABASE_URL + '/rest/v1/rpc/save_report', {
         method:'POST',
-        headers:{'Content-Type':'application/json','apikey':process.env.SUPABASE_KEY,'Authorization':'Bearer '+process.env.SUPABASE_KEY,'Prefer':'return=minimal'},
-        body: JSON.stringify({
+        headers:{'Content-Type':'application/json','apikey':process.env.SUPABASE_KEY,'Authorization':'Bearer '+process.env.SUPABASE_KEY},
+        body: JSON.stringify({ p: {
           company:d.company, sector:d.sector, crop:d.crop, region:d.region,
           volume:Number(d.volume), current_price:Number(d.currentPrice),
           premium:Number(d.premium), verdict:report.verdict,
@@ -820,7 +821,7 @@ module.exports = async function handler(req, res) {
           price_range:report.kpis.price_range,
           input_data:d, report_data:report,
           created_at:new Date().toISOString(),
-        }),
+        }}),
       });
       // Save to buyer_bcs for match engine
       if (d.user_id) {
@@ -830,16 +831,16 @@ module.exports = async function handler(req, res) {
           calc.processing.dm_value_per_tonne +
           calc.processing.defect_saving_per_tonne
         );
-        await fetch(process.env.SUPABASE_URL + '/rest/v1/buyer_bcs', {
+        await fetch(process.env.SUPABASE_URL + '/rest/v1/rpc/save_buyer_bc', {
           method:'POST',
-          headers:{'Content-Type':'application/json','apikey':process.env.SUPABASE_KEY,'Authorization':'Bearer '+process.env.SUPABASE_KEY,'Prefer':'return=minimal'},
-          body: JSON.stringify({
+          headers:{'Content-Type':'application/json','apikey':process.env.SUPABASE_KEY,'Authorization':'Bearer '+process.env.SUPABASE_KEY},
+          body: JSON.stringify({ p: {
             user_id:d.user_id, company:d.company, sector:d.sector,
             crop:d.crop, region:d.region, volume:Number(d.volume),
             current_price:Number(d.currentPrice), net_value:calc.net_value,
             risk_reduction:calc.risk_reduction, feasibility:calc.feasibility,
             verdict:report.verdict, justifiable_farm_price:justifiable,
-          }),
+          }}),
         });
       }
     }

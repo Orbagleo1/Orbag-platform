@@ -117,15 +117,15 @@ module.exports = async function handler(req, res) {
     catch(e) { return res.status(500).json({ error: 'Could not parse response. Please try again.' }); }
 
     if (process.env.SUPABASE_URL && process.env.SUPABASE_KEY) {
-      await fetch(process.env.SUPABASE_URL + '/rest/v1/reports', {
+      // Persist via the bounded save_report RPC — the anon key cannot insert into reports directly.
+      await fetch(process.env.SUPABASE_URL + '/rest/v1/rpc/save_report', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'apikey': process.env.SUPABASE_KEY,
           'Authorization': 'Bearer ' + process.env.SUPABASE_KEY,
-          'Prefer': 'return=minimal',
         },
-        body: JSON.stringify({
+        body: JSON.stringify({ p: {
           company: d.farmName, sector: 'farmer',
           crop: (d.crops || []).join(','),
           region: d.farmRegion, volume: d.totalHa,
@@ -134,19 +134,18 @@ module.exports = async function handler(req, res) {
           price_range: report.kpis && report.kpis.regen_income_ha,
           input_data: d, report_data: report,
           created_at: new Date().toISOString(),
-        }),
+        }}),
       });
       // Save to farmer_bcs for match engine
       if (d.user_id) {
-        await fetch(process.env.SUPABASE_URL + '/rest/v1/farmer_bcs', {
+        await fetch(process.env.SUPABASE_URL + '/rest/v1/rpc/save_farmer_bc', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'apikey': process.env.SUPABASE_KEY,
             'Authorization': 'Bearer ' + process.env.SUPABASE_KEY,
-            'Prefer': 'return=minimal',
           },
-          body: JSON.stringify({
+          body: JSON.stringify({ p: {
             user_id: d.user_id,
             farm_name: d.farmName,
             region: d.farmRegion,
@@ -155,7 +154,7 @@ module.exports = async function handler(req, res) {
             crops: d.crops || [],
             net_value: null,
             verdict: report.verdict,
-          }),
+          }}),
         });
       }
     }
