@@ -107,6 +107,17 @@ input:focus,select:focus{border-color:var(--leaf)}
 <div class="profile-header" id="profileName">My profile</div>
 <div id="roleBadge"></div>
 
+<div class="role-grid" id="profileRoleGrid" style="margin:0 0 18px">
+<div class="role-btn" id="profRoleFarmer" onclick="switchProfileRole('farmer')">
+<div class="icon">🌱</div>
+<div class="label">Farmer / grower</div>
+</div>
+<div class="role-btn" id="profRoleBuyer" onclick="switchProfileRole('buyer')">
+<div class="icon">🏭</div>
+<div class="label">Buyer / processor</div>
+</div>
+</div>
+
 <div class="profile-card">
 <div class="profile-section">Company details</div>
 <div class="field-grid">
@@ -273,34 +284,48 @@ async function showProfile(user) {
   userRole = profile.role;
   document.getElementById('profileName').textContent = profile.name || 'My profile';
 
-  const badge = document.getElementById('roleBadge');
-  badge.innerHTML = profile.role === 'farmer'
-    ? '<span class="role-badge farmer">🌱 Farmer / grower</span>'
-    : '<span class="role-badge buyer">🏭 Buyer / processor</span>';
-
   document.getElementById('pName').value = profile.name || '';
   document.getElementById('pCompany').value = profile.company || '';
   document.getElementById('pRegion').value = profile.region || '';
 
-  if (profile.role === 'farmer') {
-    document.getElementById('farmerFields').style.display = 'block';
-    document.getElementById('hectaresField').style.display = 'block';
-    document.getElementById('sectorField').style.display = 'none';
-    document.getElementById('budgetField').style.display = 'none';
-    document.getElementById('pHectares').value = profile.hectares || '';
-    document.getElementById('pSoil').value = profile.soil_type || '';
-    selectedCrops = profile.crops || [];
-    document.querySelectorAll('.crop-check').forEach(el => {
-      el.classList.toggle('selected', selectedCrops.includes(el.dataset.crop));
-    });
-  } else {
-    document.getElementById('farmerFields').style.display = 'none';
-    document.getElementById('hectaresField').style.display = 'none';
-    document.getElementById('sectorField').style.display = 'block';
-    document.getElementById('budgetField').style.display = 'block';
-    document.getElementById('pSector').value = profile.sector || '';
-    document.getElementById('pBudget').value = profile.budget || '';
-  }
+  // Populate both farmer and buyer fields so the user can switch role context
+  // without losing stored values.
+  document.getElementById('pHectares').value = profile.hectares || '';
+  document.getElementById('pSoil').value = profile.soil_type || '';
+  selectedCrops = profile.crops || [];
+  document.querySelectorAll('.crop-check').forEach(el => {
+    el.classList.toggle('selected', selectedCrops.includes(el.dataset.crop));
+  });
+  document.getElementById('pSector').value = profile.sector || '';
+  document.getElementById('pBudget').value = profile.budget || '';
+
+  applyRoleView(profile.role || 'farmer');
+}
+
+// Show the badge + fields for the given role, and let the user switch context
+// between buyer and farmer right here on My Account. Role drives prefill and the
+// default landing page only — never navigation (see CLAUDE.md auth/role rule).
+function applyRoleView(role) {
+  userRole = role;
+  const farmer = role === 'farmer';
+
+  document.getElementById('roleBadge').innerHTML = farmer
+    ? '<span class="role-badge farmer">🌱 Farmer / grower</span>'
+    : '<span class="role-badge buyer">🏭 Buyer / processor</span>';
+
+  const f = document.getElementById('profRoleFarmer');
+  const b = document.getElementById('profRoleBuyer');
+  if (f) f.classList.toggle('selected', farmer);
+  if (b) b.classList.toggle('selected', !farmer);
+
+  document.getElementById('farmerFields').style.display = farmer ? 'block' : 'none';
+  document.getElementById('hectaresField').style.display = farmer ? 'block' : 'none';
+  document.getElementById('sectorField').style.display = farmer ? 'none' : 'block';
+  document.getElementById('budgetField').style.display = farmer ? 'none' : 'block';
+}
+
+function switchProfileRole(role) {
+  applyRoleView(role);
 }
 
 function toggleCrop(el) {
