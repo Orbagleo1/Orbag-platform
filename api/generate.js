@@ -50,17 +50,27 @@ var REGIONAL_CROP_DATA = {
 // Map a sourcing origin (currentSource) to its crop-production region. The crop region can also
 // be set directly via the `region` field (e.g. the Bolwick preset sets region='uk_norfolk').
 var SOURCE_TO_CROP_REGION = {uk:'uk_norfolk', netherlands:'nl', mixed_eu:'nl'};
-function resolveCropRegion(d) {
-  if (d && d.region && REGIONAL_CROP_DATA[d.region]) return d.region;          // explicit crop region
-  if (d && d.currentSource && SOURCE_TO_CROP_REGION[d.currentSource]) return SOURCE_TO_CROP_REGION[d.currentSource];
+// A crop region is available if either the live DB layer (mkt.cropData) or the hardcoded fallback has it.
+function cropRegionAvailable(region, mkt) {
+  return !!((mkt && mkt.cropData && mkt.cropData[region]) || REGIONAL_CROP_DATA[region]);
+}
+function resolveCropRegion(d, mkt) {
+  if (d && d.region && cropRegionAvailable(d.region, mkt)) return d.region;    // explicit crop region
+  var src = d && d.currentSource;
+  if (src && mkt && mkt.regions && mkt.regions[src] && mkt.regions[src].crop_region) return mkt.regions[src].crop_region; // DB-driven
+  if (src && SOURCE_TO_CROP_REGION[src]) return SOURCE_TO_CROP_REGION[src];    // hardcoded fallback
   return 'nl';                                                                 // default: NL benchmarks
 }
 // Build the effective crop coefficients: KWIN quality fields + regional production overrides.
-function cropCoefficients(crop, cropRegion) {
+// Production overrides come from the live DB layer (mkt.cropData) first, then the hardcoded
+// REGIONAL_CROP_DATA, then NL as a last resort — so the engine never breaks if the DB is empty.
+function cropCoefficients(crop, cropRegion, mkt) {
   var base = KWIN[crop] || KWIN.green_beans;
   var k = {}; for (var f in base) k[f] = base[f];                              // clone — never mutate KWIN
-  var rcd = REGIONAL_CROP_DATA[cropRegion] && REGIONAL_CROP_DATA[cropRegion][crop];
-  if (!rcd) rcd = REGIONAL_CROP_DATA.nl[crop];                                 // fall back to NL economics
+  var rcd = (mkt && mkt.cropData && mkt.cropData[cropRegion] && mkt.cropData[cropRegion][crop])
+         || (REGIONAL_CROP_DATA[cropRegion] && REGIONAL_CROP_DATA[cropRegion][crop])
+         || (mkt && mkt.cropData && mkt.cropData.nl && mkt.cropData.nl[crop])
+         || REGIONAL_CROP_DATA.nl[crop];
   if (rcd) {
     k.yield_ha    = Math.round(rcd.yield_t_ha * 1000);                         // t/ha -> kg/ha (engine math)
     k.price_conv  = rcd.price_conv;
@@ -208,13 +218,55 @@ var SEA_ROUTES = {morocco_egypt:true, turkey_spain:true, mixed_global:true, uk:t
 // area than the buyer — so a UK farm -> UK buyer pays 0, while a UK farm -> NL buyer pays the GB->EU
 // charge. Production data (REGIONAL_CROP_DATA) stays separate so it is unaffected by buyer location.
 var BUYER_LOCATION = 'nl';   // EU buyer — only option in the current UI
-// EU / customs-union membership by location key — covers BOTH source keys and buyer-location keys
-// (so 'nl' and 'netherlands' both resolve). uk = non-EU post-Brexit (customs/SPS apply to an EU buyer).
-var IS_EU = {nl:true, netherlands:true, mixed_eu:true, turkey_spain:false, morocco_egypt:false, mixed_global:false, uk:false, uk_norfolk:false};
-function customsCost(sourceKey) {
-  // Same customs area as the buyer => no border cost; different area => the source's import_cost.
-  if (!!IS_EU[sourceKey] === !!IS_EU[BUYER_LOCATION]) return 0;
-  return LOGISTICS.import_cost[sourceKey] || 0;
+var BUYER_IS_EU = true;      // NL buyer sits inside the EU customs area
+// EU / customs-union membership by source key (hardcoded fallback; the DB carries is_eu per region).
+var IS_EU = {netherlands:true, mixed_eu:true, turkey_spain:false, morocco_egypt:false, mixed_global:false, uk:false};
+function customsCost(region) {
+  // region is a resolved region object. Same customs area as the buyer => no border cost.
+  if (!region) return 0;
+  if (!!region.is_eu === BUYER_IS_EU) return 0;
+  return region.import_cost || 0;
+}
+
+// ── CONSOLIDATED REGION TABLE (hardcoded fallback) ───────
+// One object per source region, assembled from RISK_PCT + LOGISTICS + SEA_ROUTES + IS_EU above.
+// The live DB layer (region_coefficients via getRegionalData) is merged OVER this per request by
+// buildRegions(), so a new region is a DB row — but if the DB is empty/unreachable the engine
+// still runs on these values unchanged.
+var HARDCODED_REGIONS = (function () {
+  var out = {};
+  for (var key in LOGISTICS.transport) {
+    out[key] = {
+      geopolitical: RISK_PCT.geopolitical[key],
+      weather_conv: RISK_PCT.weather_conv[key],
+      transport:    LOGISTICS.transport[key],
+      load_factor:  LOGISTICS.load_factor[key],
+      import_cost:  LOGISTICS.import_cost[key],
+      is_sea:       !!SEA_ROUTES[key],
+      is_eu:        !!IS_EU[key],
+      crop_region:  SOURCE_TO_CROP_REGION[key] || 'nl',
+    };
+  }
+  return out;
+})();
+// Merge the live DB regions over the hardcoded fallback (field-by-field, DB wins when present).
+function buildRegions(dbRegions) {
+  var out = {};
+  for (var k in HARDCODED_REGIONS) out[k] = HARDCODED_REGIONS[k];
+  if (dbRegions) for (var d in dbRegions) {
+    var s = dbRegions[d], b = out[d] || {};
+    out[d] = {
+      geopolitical: s.geopolitical != null ? s.geopolitical : b.geopolitical,
+      weather_conv: s.weather_conv != null ? s.weather_conv : b.weather_conv,
+      transport:    s.transport || b.transport,
+      load_factor:  s.load_factor != null ? s.load_factor : b.load_factor,
+      import_cost:  s.import_cost != null ? s.import_cost : b.import_cost,
+      is_sea:       s.is_sea != null ? s.is_sea : b.is_sea,
+      is_eu:        s.is_eu != null ? s.is_eu : b.is_eu,
+      crop_region:  s.crop_region || b.crop_region || 'nl',
+    };
+  }
+  return out;
 }
 
 // ── SHOCK SCENARIO LIBRARY ───────────────────────────────
@@ -253,9 +305,11 @@ function calculate(d, sc, mkt) {
   mkt = mkt || {};
   var diesel = mkt.diesel != null ? mkt.diesel : LOGISTICS.fuel.diesel_price_eur_l;
   var carbon = mkt.carbon != null ? mkt.carbon : LOGISTICS.emissions.carbon_price_eur_t;
+  var REGIONS = buildRegions(mkt.regions);               // hardcoded fallback ∪ live DB regions
+  var R       = REGIONS[d.currentSource] || REGIONS.netherlands; // resolved source region
   var crop       = d.crop || 'green_beans';
-  var cropRegion = resolveCropRegion(d);                  // where the crop is grown (production data)
-  var k          = cropCoefficients(crop, cropRegion);   // KWIN quality + regional yield/price/cost
+  var cropRegion = resolveCropRegion(d, mkt);            // where the crop is grown (production data)
+  var k          = cropCoefficients(crop, cropRegion, mkt); // KWIN quality + regional yield/price/cost
   var dm       = DELIVERY_MOD[d.deliverySpec] || DELIVERY_MOD.any;
   var sm       = SECTOR_MOD[d.sector] || SECTOR_MOD.food_processor;
   var szm      = SEASON_MOD[d.seasonality] || SEASON_MOD.flexible;
@@ -266,14 +320,14 @@ function calculate(d, sc, mkt) {
   var cv       = vol * price;
 
   // 1. Geopolitical (+ shock overlay on the current source)
-  var geo_pct     = RISK_PCT.geopolitical[d.currentSource] || 0.05;
+  var geo_pct     = R.geopolitical != null ? R.geopolitical : 0.05;
   var geo_shock   = (sc.geo_risk_add && sc.geo_risk_add[d.currentSource]) || 0;
   var geo_current = Math.round(cv * (geo_pct + geo_shock));
   var geo_regen   = Math.round(cv * 0.02);
   var geo_basis   = Math.round(geo_pct * 100) + '% of €' + Math.round(cv/1000) + 'K contract value — ' + (d.currentSource||'unknown') + ' sourcing profile (WUR 2024)';
 
   // 2. Weather
-  var wthr_pct     = RISK_PCT.weather_conv[d.currentSource] || 0.20;
+  var wthr_pct     = R.weather_conv != null ? R.weather_conv : 0.20;
   var wthr_current = Math.round(cv * wthr_pct * 0.3);
   var wthr_regen   = Math.round(cv * RISK_PCT.weather_regen * 0.3);
   var wthr_basis   = Math.round(wthr_pct * 100) + '% yield variance × 0.3 impact factor × contract value';
@@ -330,8 +384,8 @@ function calculate(d, sc, mkt) {
 
   // ── Logistics calculation (extended: transport, fuel, CO2, load factor, peak,
   //    cold chain, storage, carrying, import, spoilage curve, packaging, returns) ──
-  var lg = LOGISTICS.transport[d.currentSource] || LOGISTICS.transport.netherlands;
-  var lg_regen = LOGISTICS.transport.netherlands;
+  var lg = R.transport || LOGISTICS.transport.netherlands;
+  var lg_regen = (REGIONS.netherlands && REGIONS.netherlands.transport) || LOGISTICS.transport.netherlands;
   var cold_chain = d.deliverySpec === 'fresh' || d.deliverySpec === 'frozen';
   var storage_rate = cold_chain ? LOGISTICS.storage_cold_per_week : LOGISTICS.storage_ambient_per_week;
   var chain_rate = cold_chain ? LOGISTICS.cold_chain_per_week : 0;
@@ -341,7 +395,8 @@ function calculate(d, sc, mkt) {
 
   // Build every logistics line for a transport profile (used for current + regen)
   function logiComponents(t, sourceKey) {
-    var isSea      = !!SEA_ROUTES[sourceKey];
+    var rgn        = REGIONS[sourceKey] || REGIONS.netherlands;  // resolved region (DB ∪ fallback)
+    var isSea      = !!rgn.is_sea;
     var freightM   = isSea ? sc.freight_mult : 1;          // maritime shocks hit sea routes only
     var transitDay = t.transit_days + (isSea ? sc.transit_add_days : 0);
     var transport = Math.round(t.cost_per_t * freightM);
@@ -350,13 +405,13 @@ function calculate(d, sc, mkt) {
     var co2Fac    = isSea ? LOGISTICS.emissions.co2_sea_kg_per_t_km : LOGISTICS.emissions.co2_road_kg_per_t_km;
     var co2_kg    = Math.round(t.distance_km * co2Fac);
     var emissions = Math.round(co2_kg / 1000 * carbon);
-    var lf        = LOGISTICS.load_factor[sourceKey] != null ? LOGISTICS.load_factor[sourceKey] : 0.85;
+    var lf        = rgn.load_factor != null ? rgn.load_factor : 0.85;
     var load_pen  = Math.round((transport + fuel) * (1 / lf - 1));
     var peak      = Math.round((transport + fuel) * LOGISTICS.peak_surcharge_pct);
     var cold      = Math.round(transitDay / 7 * chain_rate);
     var storage   = Math.round(t.buffer_weeks * storage_rate);
     var carrying  = Math.round(price * t.buffer_weeks * LOGISTICS.carrying_cost_pct_per_week);
-    var importd   = customsCost(sourceKey);   // buyer-aware: 0 when source shares the buyer's customs area
+    var importd   = customsCost(rgn);   // buyer-aware: 0 when source shares the buyer's customs area
     var spoil_rate= Math.min(LOGISTICS.spoilage_cap, spoilDay * transitDay);
     var spoilage  = Math.round(price * spoil_rate);
     var returns   = Math.round(transport * LOGISTICS.returns_pct);
@@ -518,6 +573,50 @@ async function getMarketBenchmarks(supabaseUrl, supabaseKey) {
   return out;
 }
 
+// Live regional layer: region_coefficients (risk + logistics per source) and regional_crop_data
+// (yield/price/cost per production region). Returned shape matches what buildRegions/cropCoefficients
+// expect. On any failure returns empty maps, so the engine falls back to the hardcoded constants.
+async function getRegionalData(supabaseUrl, supabaseKey) {
+  var out = {regions: {}, cropData: {}};
+  if (!supabaseUrl || !supabaseKey) return out;
+  var headers = {apikey: supabaseKey, Authorization: 'Bearer ' + supabaseKey};
+  try {
+    var rcRes = await fetch(supabaseUrl + '/rest/v1/region_coefficients?select=*', {headers: headers});
+    if (rcRes.ok) {
+      (await rcRes.json()).forEach(function (r) {
+        out.regions[r.region_key] = {
+          geopolitical: r.geopolitical_pct != null ? Number(r.geopolitical_pct) : null,
+          weather_conv: r.weather_conv_pct != null ? Number(r.weather_conv_pct) : null,
+          transport: (r.transport_cost_per_t != null) ? {
+            cost_per_t:   Number(r.transport_cost_per_t),
+            distance_km:  Number(r.transport_distance_km),
+            transit_days: Number(r.transport_transit_days),
+            buffer_weeks: Number(r.transport_buffer_weeks),
+          } : null,
+          load_factor: r.load_factor != null ? Number(r.load_factor) : null,
+          import_cost: r.import_cost != null ? Number(r.import_cost) : null,
+          is_sea: r.is_sea_route,
+          is_eu: r.is_eu,
+          crop_region: r.crop_region,
+        };
+      });
+    }
+    var cdRes = await fetch(supabaseUrl + '/rest/v1/regional_crop_data?select=*', {headers: headers});
+    if (cdRes.ok) {
+      (await cdRes.json()).forEach(function (r) {
+        if (!out.cropData[r.crop_region]) out.cropData[r.crop_region] = {};
+        out.cropData[r.crop_region][r.crop] = {
+          yield_t_ha:       Number(r.yield_t_ha),
+          price_conv:       Number(r.price_conv),
+          variable_cost_ha: Number(r.variable_cost_ha),
+          source_label:     r.source_label,
+        };
+      });
+    }
+  } catch(e) { /* fall back to hardcoded REGIONAL_CROP_DATA / RISK_PCT / LOGISTICS */ }
+  return out;
+}
+
 // ── NARRATIVE PROMPT ─────────────────────────────────────
 function buildNarrativePrompt(d, calc, liveContext) {
   var f = function(n) { return '€' + Math.round(n).toLocaleString(); };
@@ -585,14 +684,21 @@ module.exports = async function handler(req, res) {
   try {
     var d = req.body;
 
-    // Step 0: live market benchmarks (diesel, carbon) from intelligence_benchmarks
-    var mkt = await getMarketBenchmarks(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
+    // Step 0: live benchmarks — market (diesel/carbon) + regional layer (regions + crop data), in parallel
+    var SB_URL = process.env.SUPABASE_URL, SB_KEY = process.env.SUPABASE_KEY;
+    var mktAndRegional = await Promise.all([
+      getMarketBenchmarks(SB_URL, SB_KEY),
+      getRegionalData(SB_URL, SB_KEY),
+    ]);
+    var mkt = mktAndRegional[0];
+    mkt.regions  = mktAndRegional[1].regions;
+    mkt.cropData = mktAndRegional[1].cropData;
 
-    // Step 1: JS calculation — instant (uses live market overrides where available)
+    // Step 1: JS calculation — instant (uses live market + regional overrides where available)
     var calc = calculate(d, SCENARIOS.none, mkt);
     var sensitivity = buildSensitivity(d, mkt);
     var shockScenarios = buildShockScenarios(d, mkt);
-    console.log('calc verdict:', calc.verdict, 'net_value:', calc.net_value, 'mkt:', JSON.stringify(mkt));
+    console.log('calc verdict:', calc.verdict, 'net_value:', calc.net_value, 'diesel:', mkt.diesel, 'carbon:', mkt.carbon, 'db_regions:', Object.keys(mkt.regions||{}).length);
 
     // Step 2: live farmer context
     var liveContext = await getLiveContext(d.crop, process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
