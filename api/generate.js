@@ -72,10 +72,12 @@ function cropCoefficients(crop, cropRegion, mkt) {
          || (mkt && mkt.cropData && mkt.cropData.nl && mkt.cropData.nl[crop])
          || REGIONAL_CROP_DATA.nl[crop];
   if (rcd) {
-    k.yield_ha    = Math.round(rcd.yield_t_ha * 1000);                         // t/ha -> kg/ha (engine math)
-    k.price_conv  = rcd.price_conv;
-    k.cost_ha     = rcd.variable_cost_ha;
-    k.source_label = rcd.source_label;
+    // Per-field override: a provisional region may have e.g. yield but no price/cost yet — keep the
+    // KWIN/NL fallback for any field the regional row leaves null, instead of zeroing it out.
+    if (rcd.yield_t_ha != null)       k.yield_ha   = Math.round(rcd.yield_t_ha * 1000); // t/ha -> kg/ha
+    if (rcd.price_conv != null)       k.price_conv = rcd.price_conv;
+    if (rcd.variable_cost_ha != null) k.cost_ha    = rcd.variable_cost_ha;
+    if (rcd.source_label)             k.source_label = rcd.source_label;
   }
   if (!k.source_label) k.source_label = 'KWIN-AGV 2024';
   return k;
@@ -606,9 +608,9 @@ async function getRegionalData(supabaseUrl, supabaseKey) {
       (await cdRes.json()).forEach(function (r) {
         if (!out.cropData[r.crop_region]) out.cropData[r.crop_region] = {};
         out.cropData[r.crop_region][r.crop] = {
-          yield_t_ha:       Number(r.yield_t_ha),
-          price_conv:       Number(r.price_conv),
-          variable_cost_ha: Number(r.variable_cost_ha),
+          yield_t_ha:       r.yield_t_ha       != null ? Number(r.yield_t_ha)       : null,
+          price_conv:       r.price_conv       != null ? Number(r.price_conv)       : null,
+          variable_cost_ha: r.variable_cost_ha != null ? Number(r.variable_cost_ha) : null,
           source_label:     r.source_label,
         };
       });
