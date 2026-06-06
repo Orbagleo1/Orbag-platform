@@ -2,7 +2,7 @@
 
 _Living progress doc. Connected to the claude.ai Orbag Project via the GitHub connector so "where we are" is always visible there._
 
-**Last updated:** 2026-06-06
+**Last updated:** 2026-06-06 (buyer engine: extended logistics + shock scenarios + live market)
 
 Legend: ✅ done & verified · 🟡 in progress · ⬜ planned / backlog
 
@@ -20,6 +20,7 @@ The core automated system. Daily closed loop, no human needed in the normal case
 
 ```
 04:30 UTC  detect  →  intelligence-fx-weather   (ECB FX + Open-Meteo) writes signals (pending_review)
+04:35 UTC  market  →  intelligence-market       refreshes MARKET.* (diesel via CBS, gated)
 04:45 UTC  apply   →  apply_intelligence_updates() sharpens benchmarks, dedupes, holds outliers
 04:50 UTC  notify  →  notify-held-signals        emails an alert when a signal is held
 ```
