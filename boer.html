@@ -216,12 +216,12 @@ const REGION_MAP = {
         <div class="field">
           <label>Region</label>
           <select id="farmRegion">
-            <option value="groningen">Groningen (kleigrond)</option>
-            <option value="friesland">Friesland (kleigrond)</option>
-            <option value="drenthe">Drenthe (zand/dalgrond)</option>
-            <option value="flevoland">Flevoland (IJsselmeerpolders)</option>
-            <option value="zeeland">Zeeland (zware klei)</option>
-            <option value="brabant">Noord-Brabant (zandgrond)</option>
+            <option value="groningen">Groningen (clay)</option>
+            <option value="friesland">Friesland (clay)</option>
+            <option value="drenthe">Drenthe (sand/peat)</option>
+            <option value="flevoland">Flevoland (polder)</option>
+            <option value="zeeland">Zeeland (heavy clay)</option>
+            <option value="brabant">Noord-Brabant (sand)</option>
             <option value="other_nl">Other Netherlands</option>
           </select>
         </div>
@@ -232,11 +232,11 @@ const REGION_MAP = {
         <div class="field">
           <label>Soil type</label>
           <select id="soilType">
-            <option value="klei">Kleigrond (clay)</option>
-            <option value="zand">Zandgrond (sandy)</option>
-            <option value="dal">Dalgrond (peat-based)</option>
-            <option value="loss">Lössgrond</option>
-            <option value="veen">Veengrond</option>
+            <option value="klei">Clay (klei)</option>
+            <option value="zand">Sand (zand)</option>
+            <option value="dal">Reclaimed peat (dalgrond)</option>
+            <option value="loss">Loess (löss)</option>
+            <option value="veen">Peat (veen)</option>
           </select>
         </div>
       </div>
@@ -249,15 +249,15 @@ const REGION_MAP = {
         <div class="field">
           <label>Primary crops (current rotation)</label>
           <div class="check-group" id="cropChecks">
-            <label class="check-item checked"><input type="checkbox" value="wintertarwe" checked>Wintertarwe</label>
-            <label class="check-item"><input type="checkbox" value="pootaardappelen">Pootaardappelen</label>
-            <label class="check-item checked"><input type="checkbox" value="suikerbieten" checked>Suikerbieten</label>
-            <label class="check-item"><input type="checkbox" value="consumptieaardappelen">Cons. aardappelen</label>
-            <label class="check-item"><input type="checkbox" value="uien">Uien</label>
-            <label class="check-item"><input type="checkbox" value="gerst">Gerst</label>
-            <label class="check-item"><input type="checkbox" value="haver">Haver</label>
-            <label class="check-item"><input type="checkbox" value="erwten">Erwten / peulvruchten</label>
-            <label class="check-item"><input type="checkbox" value="sperziebonen">Sperziebonen</label>
+            <label class="check-item checked"><input type="checkbox" value="wintertarwe" checked>Winter wheat</label>
+            <label class="check-item"><input type="checkbox" value="pootaardappelen">Seed potatoes</label>
+            <label class="check-item checked"><input type="checkbox" value="suikerbieten" checked>Sugar beet</label>
+            <label class="check-item"><input type="checkbox" value="consumptieaardappelen">Ware potatoes</label>
+            <label class="check-item"><input type="checkbox" value="uien">Onions</label>
+            <label class="check-item"><input type="checkbox" value="gerst">Barley</label>
+            <label class="check-item"><input type="checkbox" value="haver">Oats</label>
+            <label class="check-item"><input type="checkbox" value="erwten">Peas / legumes</label>
+            <label class="check-item"><input type="checkbox" value="sperziebonen">Green beans</label>
           </div>
         </div>
       </div>

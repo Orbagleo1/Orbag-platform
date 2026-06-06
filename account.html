@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="nl">
+<html lang="en">
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -59,42 +59,42 @@ input:focus,select:focus{border-color:var(--leaf)}
 <!-- Auth view -->
 <div id="authView" class="wrap" style="display:none">
 <div class="card">
-<div class="card-title">Welkom bij Orbag</div>
-<div class="card-sub">Log in of maak een account aan</div>
+<div class="card-title">Welcome to Orbag</div>
+<div class="card-sub">Log in or create an account</div>
 <div class="tabs">
-<button class="tab active" onclick="switchTab('login')">Inloggen</button>
-<button class="tab" onclick="switchTab('register')">Registreren</button>
+<button class="tab active" onclick="switchTab('login')">Log in</button>
+<button class="tab" onclick="switchTab('register')">Register</button>
 </div>
 
 <div id="loginForm">
-<label>E-mailadres</label>
-<input type="email" id="loginEmail" placeholder="jouw@email.nl"/>
-<label>Wachtwoord</label>
+<label>Email address</label>
+<input type="email" id="loginEmail" placeholder="you@email.com"/>
+<label>Password</label>
 <input type="password" id="loginPassword" placeholder="••••••••"/>
-<button class="btn-primary" onclick="login()">Inloggen</button>
+<button class="btn-primary" onclick="login()">Log in</button>
 </div>
 
 <div id="registerForm" style="display:none">
-<label>Ik ben een</label>
+<label>I am a</label>
 <div class="role-grid">
 <div class="role-btn selected" id="roleBoer" onclick="selectRole('farmer')">
 <div class="icon">🌱</div>
-<div class="label">Boer / teler</div>
+<div class="label">Farmer / grower</div>
 </div>
 <div class="role-btn" id="roleKoper" onclick="selectRole('buyer')">
 <div class="icon">🏭</div>
-<div class="label">Koper / afnemer</div>
+<div class="label">Buyer / processor</div>
 </div>
 </div>
-<label>Naam</label>
-<input type="text" id="regName" placeholder="Jouw naam"/>
-<label>Bedrijfsnaam</label>
-<input type="text" id="regCompany" placeholder="Bedrijfsnaam"/>
-<label>E-mailadres</label>
-<input type="email" id="regEmail" placeholder="jouw@email.nl"/>
-<label>Wachtwoord</label>
-<input type="password" id="regPassword" placeholder="Minimaal 8 tekens"/>
-<button class="btn-primary" onclick="register()">Account aanmaken</button>
+<label>Name</label>
+<input type="text" id="regName" placeholder="Your name"/>
+<label>Company name</label>
+<input type="text" id="regCompany" placeholder="Company name"/>
+<label>Email address</label>
+<input type="email" id="regEmail" placeholder="you@email.com"/>
+<label>Password</label>
+<input type="password" id="regPassword" placeholder="At least 8 characters"/>
+<button class="btn-primary" onclick="register()">Create account</button>
 </div>
 
 <div class="msg" id="authMsg"></div>
@@ -104,24 +104,24 @@ input:focus,select:focus{border-color:var(--leaf)}
 <!-- Profile view -->
 <div id="profileView" style="display:none">
 <div class="profile-wrap">
-<div class="profile-header" id="profileName">Mijn profiel</div>
+<div class="profile-header" id="profileName">My profile</div>
 <div id="roleBadge"></div>
 
 <div class="profile-card">
-<div class="profile-section">Bedrijfsgegevens</div>
+<div class="profile-section">Company details</div>
 <div class="field-grid">
 <div>
-<label>Naam</label>
+<label>Name</label>
 <input type="text" id="pName"/>
 </div>
 <div>
-<label>Bedrijf</label>
+<label>Company</label>
 <input type="text" id="pCompany"/>
 </div>
 <div>
-<label>Regio</label>
+<label>Region</label>
 <select id="pRegion">
-<option value="">Selecteer regio</option>
+<option value="">Select region</option>
 <option value="noord_groningen">Noord-Groningen</option>
 <option value="groningen">Groningen</option>
 <option value="friesland">Friesland</option>
@@ -133,53 +133,53 @@ input:focus,select:focus{border-color:var(--leaf)}
 </div>
 <div id="hectaresField" style="display:none">
 <label>Hectares</label>
-<input type="number" id="pHectares" placeholder="bijv. 120"/>
+<input type="number" id="pHectares" placeholder="e.g. 120"/>
 </div>
 <div id="sectorField" style="display:none">
 <label>Sector</label>
 <select id="pSector">
-<option value="">Selecteer sector</option>
+<option value="">Select sector</option>
 <option value="food_processor">Food processor</option>
-<option value="retailer">Retailer / supermarkt</option>
+<option value="retailer">Retailer / supermarket</option>
 <option value="catering">Catering / foodservice</option>
-<option value="wholesaler">Groothandel</option>
-<option value="exporter">Exporteur</option>
+<option value="wholesaler">Wholesaler</option>
+<option value="exporter">Exporter</option>
 </select>
 </div>
 <div id="budgetField" style="display:none">
-<label>Jaarlijks inkoopbudget (€)</label>
-<input type="number" id="pBudget" placeholder="bijv. 5000000"/>
+<label>Annual procurement budget (€)</label>
+<input type="number" id="pBudget" placeholder="e.g. 5000000"/>
 </div>
 </div>
 </div>
 
 <div class="profile-card" id="farmerFields" style="display:none">
-<div class="profile-section">Teelt</div>
-<label>Grondsoort</label>
+<div class="profile-section">Cultivation</div>
+<label>Soil type</label>
 <select id="pSoil">
-<option value="">Selecteer grondsoort</option>
-<option value="klei">Zeeklei</option>
-<option value="zand">Zand</option>
-<option value="dal">Dalgrond</option>
-<option value="loss">Löss</option>
-<option value="veen">Veen</option>
+<option value="">Select soil type</option>
+<option value="klei">Marine clay</option>
+<option value="zand">Sand</option>
+<option value="dal">Reclaimed peat</option>
+<option value="loss">Loess</option>
+<option value="veen">Peat</option>
 </select>
-<label style="margin-top:16px">Gewassen</label>
+<label style="margin-top:16px">Crops</label>
 <div class="crops-grid">
-<div class="crop-check" data-crop="green_beans" onclick="toggleCrop(this)">Sperziebonen</div>
-<div class="crop-check" data-crop="wheat" onclick="toggleCrop(this)">Wintertarwe</div>
-<div class="crop-check" data-crop="potatoes" onclick="toggleCrop(this)">Aardappelen</div>
-<div class="crop-check" data-crop="onions" onclick="toggleCrop(this)">Uien</div>
-<div class="crop-check" data-crop="lentils" onclick="toggleCrop(this)">Linzen</div>
-<div class="crop-check" data-crop="oats" onclick="toggleCrop(this)">Haver</div>
-<div class="crop-check" data-crop="peas" onclick="toggleCrop(this)">Erwten</div>
-<div class="crop-check" data-crop="carrots" onclick="toggleCrop(this)">Wortelen</div>
+<div class="crop-check" data-crop="green_beans" onclick="toggleCrop(this)">Green beans</div>
+<div class="crop-check" data-crop="wheat" onclick="toggleCrop(this)">Winter wheat</div>
+<div class="crop-check" data-crop="potatoes" onclick="toggleCrop(this)">Potatoes</div>
+<div class="crop-check" data-crop="onions" onclick="toggleCrop(this)">Onions</div>
+<div class="crop-check" data-crop="lentils" onclick="toggleCrop(this)">Lentils</div>
+<div class="crop-check" data-crop="oats" onclick="toggleCrop(this)">Oats</div>
+<div class="crop-check" data-crop="peas" onclick="toggleCrop(this)">Peas</div>
+<div class="crop-check" data-crop="carrots" onclick="toggleCrop(this)">Carrots</div>
 </div>
 </div>
 
 <div class="btn-row">
-<button class="btn-ghost" onclick="logout()">Uitloggen</button>
-<button class="btn-primary" style="width:auto;padding:10px 28px;margin-top:0" onclick="saveProfile()">Opslaan</button>
+<button class="btn-ghost" onclick="logout()">Log out</button>
+<button class="btn-primary" style="width:auto;padding:10px 28px;margin-top:0" onclick="saveProfile()">Save</button>
 </div>
 <div class="msg" id="profileMsg"></div>
 </div>
@@ -251,15 +251,15 @@ async function register() {
   const company = document.getElementById('regCompany').value;
   const email = document.getElementById('regEmail').value;
   const password = document.getElementById('regPassword').value;
-  if (!name || !email || !password) return showMsg('authMsg', 'Vul alle velden in', 'error');
-  if (password.length < 8) return showMsg('authMsg', 'Wachtwoord minimaal 8 tekens', 'error');
+  if (!name || !email || !password) return showMsg('authMsg', 'Please fill in all fields', 'error');
+  if (password.length < 8) return showMsg('authMsg', 'Password must be at least 8 characters', 'error');
 
   const { data, error } = await sb.auth.signUp({ email, password });
   if (error) return showMsg('authMsg', error.message, 'error');
 
   await sb.from('profiles').upsert({ id: data.user.id, role: currentRole, name, company });
 
-  showMsg('authMsg', 'Account aangemaakt! Even wachten…', 'success');
+  showMsg('authMsg', 'Account created! One moment…', 'success');
   setTimeout(() => redirectAfterLogin(currentRole), 2000);
 }
 
@@ -271,12 +271,12 @@ async function showProfile(user) {
   if (!profile) return;
 
   userRole = profile.role;
-  document.getElementById('profileName').textContent = profile.name || 'Mijn profiel';
+  document.getElementById('profileName').textContent = profile.name || 'My profile';
 
   const badge = document.getElementById('roleBadge');
   badge.innerHTML = profile.role === 'farmer'
-    ? '<span class="role-badge farmer">🌱 Boer / teler</span>'
-    : '<span class="role-badge buyer">🏭 Koper / afnemer</span>';
+    ? '<span class="role-badge farmer">🌱 Farmer / grower</span>'
+    : '<span class="role-badge buyer">🏭 Buyer / processor</span>';
 
   document.getElementById('pName').value = profile.name || '';
   document.getElementById('pCompany').value = profile.company || '';
@@ -335,9 +335,9 @@ async function saveProfile() {
   }
 
   const { error } = await sb.from('profiles').upsert(update);
-  if (error) return showMsg('profileMsg', 'Fout bij opslaan: ' + error.message, 'error');
+  if (error) return showMsg('profileMsg', 'Error saving: ' + error.message, 'error');
 
-  showMsg('profileMsg', 'Profiel opgeslagen ✓', 'success');
+  showMsg('profileMsg', 'Profile saved ✓', 'success');
   setTimeout(() => redirectAfterLogin(userRole), 1000);
 }
 

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="nl">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -252,62 +252,62 @@
     <span class="header-sub">Cockpit</span>
   </div>
   <div class="header-right">
-    <span class="last-updated" id="lastUpdated">laden…</span>
-    <button class="refresh-btn" onclick="loadData()">↻ Ververs</button>
+    <span class="last-updated" id="lastUpdated">loading…</span>
+    <button class="refresh-btn" onclick="loadData()">↻ Refresh</button>
   </div>
 </header>
 
 <main>
   <!-- Health strip -->
   <div class="health-strip" id="healthStrip">
-    <div class="loading-state"><div class="spinner"></div> Systeem ophalen…</div>
+    <div class="loading-state"><div class="spinner"></div> Fetching system…</div>
   </div>
 
   <!-- Metrics -->
-  <div class="section-title">Platform overzicht</div>
+  <div class="section-title">Platform overview</div>
   <div class="metrics-row" id="metricsRow">
-    <div class="metric-card"><div class="metric-label">Rapporten</div><div class="metric-value">—</div></div>
+    <div class="metric-card"><div class="metric-label">Reports</div><div class="metric-value">—</div></div>
     <div class="metric-card"><div class="metric-label">Buyers</div><div class="metric-value">—</div></div>
-    <div class="metric-card"><div class="metric-label">Boeren</div><div class="metric-value">—</div></div>
-    <div class="metric-card"><div class="metric-label">Volume (ton)</div><div class="metric-value">—</div></div>
-    <div class="metric-card"><div class="metric-label">GO-ratio</div><div class="metric-value accent">—</div></div>
+    <div class="metric-card"><div class="metric-label">Farmers</div><div class="metric-value">—</div></div>
+    <div class="metric-card"><div class="metric-label">Volume (t)</div><div class="metric-value">—</div></div>
+    <div class="metric-card"><div class="metric-label">GO ratio</div><div class="metric-value accent">—</div></div>
   </div>
 
   <!-- Reports + Signals -->
-  <div class="section-title">Recente activiteit</div>
+  <div class="section-title">Recent activity</div>
   <div class="grid-2">
     <div class="table-card" id="reportsCard">
-      <div class="table-card-header">Laatste rapporten <span class="count-badge" id="reportCount">0</span></div>
+      <div class="table-card-header">Latest reports <span class="count-badge" id="reportCount">0</span></div>
       <div class="loading-state"><div class="spinner"></div></div>
     </div>
     <div class="table-card" id="signalsCard">
-      <div class="table-card-header">Supply chain signalen <span class="count-badge" id="signalCount">0</span></div>
+      <div class="table-card-header">Supply chain signals <span class="count-badge" id="signalCount">0</span></div>
       <div class="loading-state"><div class="spinner"></div></div>
     </div>
   </div>
 
   <!-- Watchlist + Benchmarks -->
-  <div class="section-title">Risico & benchmarks</div>
+  <div class="section-title">Risk & benchmarks</div>
   <div class="grid-2">
     <div class="table-card" id="watchlistCard">
-      <div class="table-card-header">Watchlist landen</div>
+      <div class="table-card-header">Watchlist countries</div>
       <div class="loading-state"><div class="spinner"></div></div>
     </div>
     <div class="table-card" id="benchmarksCard">
-      <div class="table-card-header">KWIN benchmarks actief</div>
+      <div class="table-card-header">KWIN benchmarks active</div>
       <div class="loading-state"><div class="spinner"></div></div>
     </div>
   </div>
 
   <!-- Processes -->
-  <div class="section-title">Geautomatiseerde processen</div>
+  <div class="section-title">Automated processes</div>
   <div class="table-card" id="processesCard">
     <div class="loading-state"><div class="spinner"></div></div>
   </div>
 
   <!-- Pitch -->
   <div class="section-title">Pitchline (live)</div>
-  <div class="pitch-box" id="pitchBox">Laden…</div>
+  <div class="pitch-box" id="pitchBox">Loading…</div>
 
 </main>
 
@@ -315,15 +315,15 @@
 const ENDPOINT = 'https://wbysgkfsaoyaaatdgics.supabase.co/functions/v1/dashboard-data?key=orbag-leo-2026-dashboard';
 
 async function loadData() {
-  document.getElementById('lastUpdated').textContent = 'laden…';
+  document.getElementById('lastUpdated').textContent = 'loading…';
   try {
     const res = await fetch(ENDPOINT);
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const d = await res.json();
     render(d);
-    document.getElementById('lastUpdated').textContent = 'bijgewerkt ' + shortDate(new Date().toISOString());
+    document.getElementById('lastUpdated').textContent = 'updated ' + shortDate(new Date().toISOString());
   } catch (e) {
-    document.getElementById('healthStrip').innerHTML = '<div class="error-msg">⚠ Kon cockpit-data niet laden: ' + e.message + '</div>';
+    document.getElementById('healthStrip').innerHTML = '<div class="error-msg">⚠ Could not load cockpit data: ' + e.message + '</div>';
   }
 }
 
@@ -340,7 +340,7 @@ function render(d) {
 
 // ── HEALTH
 function renderHealth(health) {
-  if (!health) { document.getElementById('healthStrip').innerHTML = '<div class="error-msg">Geen health data</div>'; return; }
+  if (!health) { document.getElementById('healthStrip').innerHTML = '<div class="error-msg">No health data</div>'; return; }
   const pills = Object.entries(health).map(([k, v]) => {
     const ok = v === true || v === 'ok' || v === 'active' || v === 'scheduled' || (typeof v === 'number' && v > 0);
     const cls = ok ? 'dot-green' : 'dot-red';
@@ -356,16 +356,16 @@ function renderMetrics(m, reports) {
   const total = m?.total_reports || reports?.length || 0;
   const buyers = m?.total_buyers || '—';
   const farmers = m?.total_farmers || '—';
-  const volume = m?.total_volume_ton ? Number(m.total_volume_ton).toLocaleString('nl-NL') : '—';
+  const volume = m?.total_volume_ton ? Number(m.total_volume_ton).toLocaleString('en-GB') : '—';
   const goCount = reports ? reports.filter(r => r.verdict === 'GO').length : 0;
   const goRatio = reports && reports.length ? Math.round(goCount / reports.length * 100) + '%' : '—';
 
   document.getElementById('metricsRow').innerHTML = `
-    <div class="metric-card"><div class="metric-label">Rapporten</div><div class="metric-value">${total}</div><div class="metric-sub">totaal gegenereerd</div></div>
-    <div class="metric-card"><div class="metric-label">Buyers</div><div class="metric-value">${buyers}</div><div class="metric-sub">unieke afnemers</div></div>
-    <div class="metric-card"><div class="metric-label">Boeren</div><div class="metric-value">${farmers}</div><div class="metric-sub">geregistreerd</div></div>
-    <div class="metric-card"><div class="metric-label">Volume</div><div class="metric-value">${volume}</div><div class="metric-sub">ton geanalyseerd</div></div>
-    <div class="metric-card"><div class="metric-label">GO-ratio</div><div class="metric-value accent">${goRatio}</div><div class="metric-sub">positief advies</div></div>
+    <div class="metric-card"><div class="metric-label">Reports</div><div class="metric-value">${total}</div><div class="metric-sub">total generated</div></div>
+    <div class="metric-card"><div class="metric-label">Buyers</div><div class="metric-value">${buyers}</div><div class="metric-sub">unique buyers</div></div>
+    <div class="metric-card"><div class="metric-label">Farmers</div><div class="metric-value">${farmers}</div><div class="metric-sub">registered</div></div>
+    <div class="metric-card"><div class="metric-label">Volume</div><div class="metric-value">${volume}</div><div class="metric-sub">tonnes analysed</div></div>
+    <div class="metric-card"><div class="metric-label">GO ratio</div><div class="metric-value accent">${goRatio}</div><div class="metric-sub">positive verdict</div></div>
   `;
 }
 
@@ -373,11 +373,11 @@ function renderMetrics(m, reports) {
 function renderReports(reports) {
   const card = document.getElementById('reportsCard');
   document.getElementById('reportCount').textContent = reports?.length || 0;
-  if (!reports || !reports.length) { card.querySelector('.loading-state, .error-msg, table')?.remove(); card.insertAdjacentHTML('beforeend', '<div class="error-msg">Geen rapporten</div>'); return; }
+  if (!reports || !reports.length) { card.querySelector('.loading-state, .error-msg, table')?.remove(); card.insertAdjacentHTML('beforeend', '<div class="error-msg">No reports</div>'); return; }
 
   const rows = reports.slice(0, 8).map(r => {
     const vc = r.verdict === 'GO' ? 'verdict-go' : r.verdict === 'NO_GO' ? 'verdict-no' : 'verdict-cond';
-    const net = r.net_value != null ? '€' + Number(r.net_value).toLocaleString('nl-NL') : '—';
+    const net = r.net_value != null ? '€' + Number(r.net_value).toLocaleString('en-GB') : '—';
     return `<tr>
       <td>${r.crop || '—'}</td>
       <td>${r.region || '—'}</td>
@@ -388,9 +388,9 @@ function renderReports(reports) {
   }).join('');
 
   card.innerHTML = `
-    <div class="table-card-header">Laatste rapporten <span class="count-badge">${reports.length}</span></div>
+    <div class="table-card-header">Latest reports <span class="count-badge">${reports.length}</span></div>
     <table>
-      <thead><tr><th>Gewas</th><th>Regio</th><th>Verdict</th><th style="text-align:right">Net value</th><th>Datum</th></tr></thead>
+      <thead><tr><th>Crop</th><th>Region</th><th>Verdict</th><th style="text-align:right">Net value</th><th>Date</th></tr></thead>
       <tbody>${rows}</tbody>
     </table>`;
 }
@@ -402,7 +402,7 @@ function renderSignals(signals, pending) {
   document.getElementById('signalCount').textContent = all.length;
 
   if (!all.length) {
-    card.innerHTML = '<div class="table-card-header">Supply chain signalen <span class="count-badge">0</span></div><div class="error-msg">Geen signalen</div>';
+    card.innerHTML = '<div class="table-card-header">Supply chain signals <span class="count-badge">0</span></div><div class="error-msg">No signals</div>';
     return;
   }
 
@@ -420,14 +420,14 @@ function renderSignals(signals, pending) {
     </div>`;
   }).join('');
 
-  card.innerHTML = `<div class="table-card-header">Supply chain signalen <span class="count-badge">${all.length}</span></div>${rows}`;
+  card.innerHTML = `<div class="table-card-header">Supply chain signals <span class="count-badge">${all.length}</span></div>${rows}`;
 }
 
 // ── WATCHLIST
 function renderWatchlist(watchlist) {
   const card = document.getElementById('watchlistCard');
   if (!watchlist || !watchlist.length) {
-    card.innerHTML = '<div class="table-card-header">Watchlist landen</div><div class="error-msg">Geen landen</div>';
+    card.innerHTML = '<div class="table-card-header">Watchlist countries</div><div class="error-msg">No countries</div>';
     return;
   }
   const rows = watchlist.map(w => {
@@ -440,7 +440,7 @@ function renderWatchlist(watchlist) {
       <span style="font-size:0.7rem;color:var(--text-muted)">${w.active_signals || 0} sig.</span>
     </div>`;
   }).join('');
-  card.innerHTML = `<div class="table-card-header">Watchlist landen</div>${rows}`;
+  card.innerHTML = `<div class="table-card-header">Watchlist countries</div>${rows}`;
 }
 
 // ── BENCHMARKS
@@ -448,21 +448,21 @@ function renderBenchmarks(benchmarks, signalTypes) {
   const card = document.getElementById('benchmarksCard');
   const items = benchmarks || signalTypes || [];
   if (!items.length) {
-    card.innerHTML = '<div class="table-card-header">KWIN benchmarks actief</div><div class="error-msg">Geen benchmarks</div>';
+    card.innerHTML = '<div class="table-card-header">KWIN benchmarks active</div><div class="error-msg">No benchmarks</div>';
     return;
   }
   const rows = items.slice(0, 10).map(b => {
     const val = formatBenchmark(b);
     return `<div class="bench-row"><span class="bench-key">${b.label || prettyKey(b.signal_type || b.name || '')}</span><span class="bench-val">${val}</span></div>`;
   }).join('');
-  card.innerHTML = `<div class="table-card-header">KWIN benchmarks actief</div>${rows}`;
+  card.innerHTML = `<div class="table-card-header">KWIN benchmarks active</div>${rows}`;
 }
 
 // ── PROCESSES
 function renderProcesses(processes) {
   const card = document.getElementById('processesCard');
   if (!processes || !processes.length) {
-    card.innerHTML = '<div class="error-msg">Geen procesdata</div>';
+    card.innerHTML = '<div class="error-msg">No process data</div>';
     return;
   }
   const rows = processes.map(p => `
@@ -481,8 +481,8 @@ function renderProcesses(processes) {
 function renderPitch(d) {
   const reports = d.recent_reports || [];
   const goCount = reports.filter(r => r.verdict === 'GO').length;
-  const vol = d.public_metrics?.total_volume_ton ? Number(d.public_metrics.total_volume_ton).toLocaleString('nl-NL') + ' ton' : 'duizenden tonnen';
-  const text = `Orbag heeft ${reports.length} businesscases gegenereerd voor ${vol} agrovolume — waarvan ${goCount} een positief GO-advies kregen. Elke analyse kwantificeert de maximale meerprijs die een afnemer een boer kan betalen op basis van ketenbesparingen, zonder de eigen marge te raken.`;
+  const vol = d.public_metrics?.total_volume_ton ? Number(d.public_metrics.total_volume_ton).toLocaleString('en-GB') + ' tonnes' : 'thousands of tonnes';
+  const text = `Orbag has generated ${reports.length} business cases for ${vol} of agricultural volume — of which ${goCount} received a positive GO verdict. Every analysis quantifies the maximum premium a buyer can pay a farmer based on supply chain savings, without touching their own margin.`;
   document.getElementById('pitchBox').textContent = text;
 }
 
@@ -490,10 +490,10 @@ function renderPitch(d) {
 function shortDate(iso) {
   if (!iso) return '—';
   const d = new Date(iso);
-  return d.toLocaleString('nl-NL', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+  return d.toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
 }
 function prettyCountry(k) {
-  const map = { morocco_egypt: 'Marokko/Egypte', turkey_spain: 'Turkije/Spanje', netherlands: 'Nederland', mixed_eu: 'EU mix', mixed_global: 'Globaal' };
+  const map = { morocco_egypt: 'Morocco/Egypt', turkey_spain: 'Turkey/Spain', netherlands: 'Netherlands', mixed_eu: 'EU mix', mixed_global: 'Global' };
   return map[k] || k;
 }
 function prettySignalIcon(t) {
@@ -508,7 +508,7 @@ function formatBenchmark(b) {
   if (b.unit === 'pct') return (val * 100).toFixed(1) + '%';
   if (b.unit === 'eur_per_ton') return '€' + val + '/t';
   if (b.unit === 'rate') return val.toFixed(4);
-  return val.toLocaleString('nl-NL');
+  return val.toLocaleString('en-GB');
 }
 
 // Init
