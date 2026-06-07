@@ -114,3 +114,51 @@ biology.
   precieze blocker.
 - Bevestig dat de bestaande risk-math en de todo.md-fixtures nog kloppen.
 - Eén regel over alles wat is overgeslagen of aangehouden.
+
+---
+
+## H. STATUS (bijgewerkt 2026-06-07) — gebouwd, gedeployed, live geverifieerd
+De `crop_concentration`-laag is gebouwd én uitgebouwd tot een **wereldwijde, getrapte
+provider-infrastructuur**. Productie-engine blijft credential-vrij (leest alleen de cache).
+
+- ✅ **Pijplijn + agronomie-knoppen** — straal/cluster/area-share → drie-niveau drempelmodel.
+  Knoppen staan expliciet bovenaan (`CROP_CONCENTRATION`), `verified:false`:
+  - **Straal** aardappel 15 km, MEDIUM (≥16 km late-blight-scheiding; Firester 2018/APS/Hannukkala 2007).
+  - **Drempelcurve** = stapmodel (percolatie: kritieke host-fractie ~0,33–0,41), posities MEDIUM
+    (`medium 0,30 / high 0,50`), opslag-magnitudes (1/3/6%) LOW/expert-prior.
+- ✅ **Provider-registry + resolutieketen** (`CONCENTRATION_PROVIDERS` / `resolveConcentrationGlobal`),
+  cache-first → beste tier → eerlijke getrapte "unavailable". Elk antwoord: provider+method+confidence+coverage.
+- ✅ **Tier 1 — NL BRP** (perceel, HIGH): live WFS + offline precompute (`scripts/precompute-concentration.js`)
+  zodat 15 km uit cache rekent. Geseed: Dronten.
+- ✅ **Tier 2 — CLMS Crop Types Europe** (gewastype, MEDIUM, EU) via CDSE openEO precompute
+  (`scripts/precompute-concentration-openeo.js PROVIDER=clms`). Aardappel-code **1210 empirisch
+  gevalideerd** vs BRP (Dronten 18% ≈ 15,9%) + graancontrole Beauce (3,7%; granen 1110 = 41,6%).
+  Geseed: Kempen (16 cellen).
+- ✅ **Tier 3 — ESA WorldCover** (cropland-proxy, LOW, wereldwijd) via openEO precompute
+  (`PROVIDER=worldcover`). Geseed: NL-grid (25) + FR Beauce (89%).
+- ✅ **Cache** `crop_concentration_grid` (lat/lon-gekeyed = universeel globaal) met herkomst
+  (`source_id`/`granularity`/`confidence`/`country`); migraties `create_concentration_grid` +
+  `extend_concentration_grid_provenance`. Bounded `save_concentration_grid` RPC (anon = anon-key).
+- ✅ **Tests**: `node tests/concentration.test.js` (+ `engine.test.js` ongewijzigd groen).
+
+## I. Open punten / vervolgstappen
+1. **Dekking uitrollen** — concentratie is alleen beschikbaar wáár voorberekend (nu: Dronten,
+   NL-grid, Kempen, FR-testpunt). Uitbreiden = de one-call openEO-precompute over meer EU/NL-regio's
+   draaien (goedkoop: 1 call per grid). NL-breed bij voorkeur via BRP (Tier-1); EU via CLMS (Tier-2).
+2. **Meer CLMS-gewascodes valideren** — alleen aardappel (1210) en granen (1110) zijn vastgesteld.
+   Tarwe/ui/peen/peulvruchten: codes bevestigen tegen de officiële CLMS-legenda (PUM, JS-rendered —
+   niet via fetch te halen) óf empirisch kruisvalideren tegen BRP, vóór gebruik. (`cropCodes` in het
+   openEO-script + `crops` van de `clms-eu` provider.)
+3. **openEO-login verloopt** — de precompute draait op een CDSE device-flow-token (refresh-token).
+   Bij een nieuwe precompute-run opnieuw inloggen. Productie heeft dit NIET nodig (leest alleen cache).
+   Overweeg later een service-account of een geplande re-login voor automatische jaarlijkse refresh.
+4. **Sentinel Hub-secret roteren** — de SH OAuth-client-secret is ooit in een chat gedeeld; roteer
+   'm in het CDSE-dashboard. (openEO gebruikt 'm niet; die loopt via de device-login.)
+5. **Schaal-pad NL** — full-NL BRP-dekking is zwaar via WFS (per cel ~46k polygonen). Uiteindelijk
+   beter: BRP/PostGIS bulk-load, dan is concentratie een snelle ruimtelijke RPC i.p.v. precompute-grid.
+6. **Tier-2 globaler** — buiten de EU is er nog geen echt-gewastype-laag; opties: ESA WorldCereal
+   (granen/maïs, wereldwijd, via openEO/Terrascope) als extra Tier-2-config voor niet-EU granen.
+7. **Agronomie-validatie** — straal per gewas + drempel/opslag-magnitudes laten ijken door een
+   plantenpatholoog; per-(gewas,plaag)-tabel i.p.v. één straal per gewas. Alles staat nu `verified:false`.
+8. **Cadans** — BRP jaarlijks, CLMS/WorldCover jaarlijks; precompute-runs jaarlijks herhalen.
+9. **Out of scope (bewust, nog steeds)** — NDVI/Sentinel-vitaliteit; multi-crop; regen-baseline unlock.
