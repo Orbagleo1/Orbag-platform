@@ -1,5 +1,10 @@
 # START HERE — autonomous build session
 
+> ✅ **This run is COMPLETE** (regional data-source infrastructure shipped). This file is kept as
+> the historical session brief. For the **current** state and what to do next, read `STATUS.md`
+> (the living progress doc) and `OPEN-VOOR-JOU.md` (what's blocked on the user). Several later runs
+> have landed on top (CFO view, farmer BC engine, crop-concentration, workorder BLOK 1-4, bug-audit).
+
 You are running autonomously. Build the regional data-source infrastructure
 for the Orbag buyer engine. Work end-to-end, commit, and deploy when the
 acceptance checks pass. Reply in Dutch in any summary (the user prefers it).
