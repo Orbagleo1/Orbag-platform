@@ -34,7 +34,16 @@ var PROVIDERS = {
     coverage: 'global', source_label: 'ESA WorldCover 10m 2021 cropland (openEO/CDSE)',
     classFor: function () { return 40; },        // 40 = Cropland (same for every crop -> a proxy)
   },
-  // clms: Tier-2 EU crop-type — add once the official class legend (e.g. potato code) is confirmed.
+  clms: {                                        // Tier-2 EU real crop-TYPE (same-crop), MEDIUM
+    source_id: 'clms-eu', collection: 'CLMS_VLCC_CROP_TYPES_EUROPE_10M_YEARLY_V1',
+    temporal: ['2022-01-01', '2023-01-01'], band: 'data', granularity: 'crop_type_raster', confidence: 'MEDIUM',
+    coverage: 'eu', source_label: 'CLMS Crop Types Europe 10m 2022 (openEO/CDSE)',
+    // Class codes EMPIRICALLY VALIDATED against BRP ground truth + a wheat-belt control (Beauce):
+    //   1210 = potatoes (Dronten 18% ≈ BRP 15.9%; Beauce 3.7%), 1110 = cereals (Beauce 41.6%).
+    // verified:false — confirm/extend the rest against the official CLMS legend before relying on them.
+    cropCodes: { potatoes: 1210, wheat: 1110, oats: 1110 },
+    classFor: function (crop) { return this.cropCodes[crop] || null; },
+  },
 };
 
 var CFG = PROVIDERS[process.env.PROVIDER || 'worldcover'];
@@ -65,12 +74,16 @@ function circle(lat, lon, R, n) {
   return ring;
 }
 
-// Server-side fraction of `cls` pixels within the circle around (lat,lon).
-async function classFraction(tok, lat, lon, cls) {
-  var ring = circle(lat, lon, RADIUS, 48);
-  var lons = ring.map(function (p) { return p[0]; }), lats = ring.map(function (p) { return p[1]; });
-  var ext = { west: Math.min.apply(0, lons), east: Math.max.apply(0, lons), south: Math.min.apply(0, lats), north: Math.max.apply(0, lats) };
-  var geom = { type: 'FeatureCollection', features: [{ type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [ring] } }] };
+// Server-side fraction of `cls` pixels within the circle around EACH point — ALL points in ONE
+// openEO call (aggregate_spatial accepts many geometries), so we don't hammer the rate limit.
+async function classFractions(tok, points, cls) {
+  var feats = points.map(function (p, i) {
+    return { type: 'Feature', properties: { idx: i }, geometry: { type: 'Polygon', coordinates: [circle(p.lat, p.lon, RADIUS, 32)] } };
+  });
+  var W = Infinity, E = -Infinity, S = Infinity, N = -Infinity;
+  feats.forEach(function (f) { f.geometry.coordinates[0].forEach(function (c) { W = Math.min(W, c[0]); E = Math.max(E, c[0]); S = Math.min(S, c[1]); N = Math.max(N, c[1]); }); });
+  var ext = { west: W, east: E, south: S, north: N };
+  var geom = { type: 'FeatureCollection', features: feats };
   var pg = { process: { process_graph: {
     load: { process_id: 'load_collection', arguments: { id: CFG.collection, spatial_extent: ext, temporal_extent: CFG.temporal, bands: [CFG.band] } },
     mask: { process_id: 'apply', arguments: { data: { from_node: 'load' }, process: { process_graph: {
@@ -82,9 +95,15 @@ async function classFraction(tok, lat, lon, cls) {
   var res = await fetch(OPENEO + '/result', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer oidc/CDSE/' + tok }, body: JSON.stringify(pg) });
   if (!res.ok) throw new Error('openEO ' + res.status + ': ' + (await res.text()).slice(0, 300));
   var out = await res.json();
-  var first = out[Object.keys(out)[0]];                 // { "<date>": [[value]] }
-  var v = Array.isArray(first) ? (Array.isArray(first[0]) ? first[0][0] : first[0]) : first;
-  return Number(v);
+  var first = out[Object.keys(out)[0]];                 // { "<date>": [[v0],[v1],...] } — one per geometry, in order
+  return points.map(function (_, i) { var c = first[i]; return Number(Array.isArray(c) ? c[0] : c); });
+}
+function gridPoints() {
+  var pts = [], half = (GRID_N - 1) / 2;
+  for (var i = 0; i < GRID_N; i++) for (var j = 0; j < GRID_N; j++) {
+    pts.push({ lat: CENTER.lat + (i - half) * CELL_KM * kmLat, lon: CENTER.lon + (j - half) * CELL_KM * kmLon(CENTER.lat) });
+  }
+  return pts;
 }
 
 async function rpc(p) {
@@ -96,19 +115,22 @@ async function rpc(p) {
 
 (async function main() {
   var tok = await token();
-  console.log('provider=' + (process.env.PROVIDER || 'worldcover') + ' collection=' + CFG.collection + ' crop=' + CROP + ' radius=' + RADIUS + 'km grid=' + GRID_N + 'x' + GRID_N + '@' + CELL_KM + 'km centre=' + CENTER.lat + ',' + CENTER.lon);
-  var half = (GRID_N - 1) / 2, written = 0;
-  for (var i = 0; i < GRID_N; i++) for (var j = 0; j < GRID_N; j++) {
-    var lat = CENTER.lat + (i - half) * CELL_KM * kmLat, lon = CENTER.lon + (j - half) * CELL_KM * kmLon(CENTER.lat);
-    var share = await classFraction(tok, lat, lon, CFG.classFor(CROP));
-    if (!(share >= 0)) { console.log('  cell ' + lat.toFixed(4) + ',' + lon.toFixed(4) + ' -> no data, skipped'); continue; }
+  var CLS = CFG.classFor(CROP);
+  if (CLS == null) { console.error('Provider "' + (process.env.PROVIDER || 'worldcover') + '" has no class code for crop "' + CROP + '" — add it to cropCodes first.'); process.exit(1); }
+  var pts = gridPoints();
+  console.log('provider=' + (process.env.PROVIDER || 'worldcover') + ' collection=' + CFG.collection + ' crop=' + CROP + ' class=' + CLS + ' radius=' + RADIUS + 'km grid=' + GRID_N + 'x' + GRID_N + '@' + CELL_KM + 'km centre=' + CENTER.lat + ',' + CENTER.lon + ' (' + pts.length + ' cells, 1 openEO call)');
+  var fr = await classFractions(tok, pts, CLS);
+  var written = 0;
+  for (var i = 0; i < pts.length; i++) {
+    var share = fr[i];
+    if (!(share >= 0)) { console.log('  cell ' + pts[i].lat.toFixed(4) + ',' + pts[i].lon.toFixed(4) + ' -> no data, skipped'); continue; }
     var lvl = eng.concentrationLevel(share);
-    await rpc({ crop: CROP, grid_lat: Number(lat.toFixed(5)), grid_lon: Number(lon.toFixed(5)), cell_km: CELL_KM,
+    await rpc({ crop: CROP, grid_lat: Number(pts[i].lat.toFixed(5)), grid_lon: Number(pts[i].lon.toFixed(5)), cell_km: CELL_KM,
       radius_km: RADIUS, share: share, level: lvl.level, addon_pct: lvl.addon_pct, n_parcels: null,
       source_label: CFG.source_label, verified: false,
       source_id: CFG.source_id, granularity: CFG.granularity, confidence: CFG.confidence, country: process.env.COUNTRY || null });
     written++;
-    console.log('  cell ' + lat.toFixed(4) + ',' + lon.toFixed(4) + '  share=' + Math.round(share * 1000) / 10 + '%  ' + lvl.level);
+    console.log('  cell ' + pts[i].lat.toFixed(4) + ',' + pts[i].lon.toFixed(4) + '  share=' + Math.round(share * 1000) / 10 + '%  ' + lvl.level);
   }
-  console.log('Done — ' + written + ' cells upserted (' + CFG.granularity + '/' + CFG.confidence + ').');
+  console.log('Done — ' + written + '/' + pts.length + ' cells upserted (' + CFG.granularity + '/' + CFG.confidence + ').');
 })().catch(function (e) { console.error('FAILED:', e.message); process.exit(1); });

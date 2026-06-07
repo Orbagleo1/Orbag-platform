@@ -65,14 +65,14 @@ function levelAt(potatoHa, wheatHa) {
   var P = eng.CONCENTRATION_PROVIDERS;
   var byId = {}; P.forEach(function (p) { byId[p.id] = p; });
   checkTrue('nl-brp is tier-1 HIGH parcel', byId['nl-brp'].tier === 1 && byId['nl-brp'].confidence === 'HIGH' && byId['nl-brp'].granularity === 'crop_type_parcel');
-  checkTrue('worldcereal is tier-2 global', byId['worldcereal'].tier === 2 && byId['worldcereal'].coverage.type === 'global');
+  checkTrue('clms-eu is tier-2 EU crop-type', byId['clms-eu'].tier === 2 && byId['clms-eu'].coverage.type === 'eu' && byId['clms-eu'].granularity === 'crop_type_raster');
   checkTrue('cropland-proxy is tier-3 LOW', byId['cropland-proxy'].tier === 3 && byId['cropland-proxy'].confidence === 'LOW');
-  // nl-brp applies only to NL; global providers apply anywhere (subject to crop).
+  // nl-brp applies only to NL; clms-eu across the EU; cropland-proxy anywhere (subject to crop).
   checkTrue('nl-brp applies for (nl, potatoes)',   eng.providerApplies(byId['nl-brp'], 'nl', 'potatoes'));
   check('nl-brp does NOT apply for (fr, potatoes)', eng.providerApplies(byId['nl-brp'], 'fr', 'potatoes'), false);
-  checkTrue('worldcereal applies for (fr, wheat)',  eng.providerApplies(byId['worldcereal'], 'fr', 'wheat'));
-  check('worldcereal does NOT apply for (fr, potatoes)', eng.providerApplies(byId['worldcereal'], 'fr', 'potatoes'), false);
-  checkTrue('cropland-proxy applies for (fr, potatoes)', eng.providerApplies(byId['cropland-proxy'], 'fr', 'potatoes'));
+  checkTrue('clms-eu applies for (fr, potatoes)',   eng.providerApplies(byId['clms-eu'], 'fr', 'potatoes'));
+  check('clms-eu does NOT apply for (us, potatoes)', eng.providerApplies(byId['clms-eu'], 'us', 'potatoes'), false);
+  checkTrue('cropland-proxy applies for (us, potatoes)', eng.providerApplies(byId['cropland-proxy'], 'us', 'potatoes'));
 })();
 
 // ── Sync resolver tags NL example with provenance ─────────────────────────────

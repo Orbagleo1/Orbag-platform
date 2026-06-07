@@ -375,21 +375,26 @@ var CONCENTRATION_PROVIDERS = [
     coverage: { type: 'country', countries: ['nl'] }, crops: '*',
     label: 'BRP Gewaspercelen (PDOK/RVO)',
     resolve: function (lat, lon, crop) { return getBRPConcentration(lat, lon, crop); } },  // live WFS, density-guarded
-  // ── Global slots — DEFINED but NOT wired (need Google Earth Engine / Copernicus credentials). ──
-  // Wiring = implement resolve() (reduceRegion same-class fraction within the radius) + a precompute path.
-  { id: 'worldcereal', tier: 2, granularity: 'crop_group_raster', confidence: 'MEDIUM',
-    coverage: { type: 'global' }, crops: ['wheat', 'oats', 'maize'],
-    label: 'ESA WorldCereal 10m (cereals/maize)',
+  // Tier-2 EU real crop-TYPE — CLMS Crop Types Europe 10m via CDSE openEO. Served through the
+  // precompute cache (scripts/precompute-concentration-openeo.js PROVIDER=clms); the credential-free
+  // production engine does not call openEO live, so resolve() is a cache-miss explainer.
+  { id: 'clms-eu', tier: 2, granularity: 'crop_type_raster', confidence: 'MEDIUM',
+    coverage: { type: 'eu' }, crops: ['potatoes', 'wheat', 'oats'],
+    label: 'CLMS Crop Types Europe 10m (openEO/CDSE)',
     resolve: function () { return Promise.resolve({ available: false, deferred: true,
-      reason: 'ESA WorldCereal (Tier-2 global crop-group, cereals/maize only) not wired — needs Earth Engine/Copernicus credentials' }); } },
+      reason: 'CLMS EU crop-type (Tier-2) is served via the precompute cache; not yet precomputed here — run the openEO precompute (PROVIDER=clms) for this area' }); } },
+  // Tier-3 global cropland-density PROXY — ESA WorldCover via CDSE openEO, served via the precompute cache.
   { id: 'cropland-proxy', tier: 3, granularity: 'cropland_only', confidence: 'LOW',
     coverage: { type: 'global' }, crops: '*',
-    label: 'ESA WorldCover / Dynamic World cropland density (proxy)',
+    label: 'ESA WorldCover cropland density (openEO/CDSE, proxy)',
     resolve: function () { return Promise.resolve({ available: false, deferred: true,
-      reason: 'cropland-density proxy (Tier-3 global, cropland presence only — not crop-type) not wired — needs Copernicus/Earth Engine' }); } },
+      reason: 'cropland-density proxy (Tier-3 global, cropland presence only — not crop-type) served via the precompute cache; not yet precomputed here — run the openEO precompute (PROVIDER=worldcover)' }); } },
 ];
+// EU-27 (+ where CLMS Crop Types Europe has coverage) for the 'eu' coverage tier.
+var EU_COUNTRIES = ['nl','be','de','fr','dk','pt','es','it','pl','at','se','fi','ie','cz','sk','hu','ro','bg','gr','hr','si','lt','lv','ee','lu','mt','cy'];
 function providerApplies(p, country, crop) {
   if (p.coverage.type === 'country' && (!country || p.coverage.countries.indexOf(country) < 0)) return false;
+  if (p.coverage.type === 'eu' && (!country || EU_COUNTRIES.indexOf(country) < 0)) return false;
   if (p.crops !== '*' && p.crops.indexOf(crop) < 0) return false;
   return true;
 }
@@ -589,7 +594,8 @@ async function getConcentrationFromCache(farmLat, farmLon, crop, supabaseUrl, su
       provider: best.source_id || 'nl-brp',
       method: best.granularity || 'crop_type_parcel',
       confidence: best.confidence || 'HIGH',
-      coverage: 'country', country: best.country || null,
+      coverage: best.source_id === 'cropland-proxy' ? 'global' : best.source_id === 'clms-eu' ? 'eu' : 'country',
+      country: best.country || null,
       verified: false, basis: 'area (precompute cache)',
     };
   } catch (e) { return null; }
