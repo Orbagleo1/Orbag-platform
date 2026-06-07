@@ -105,8 +105,49 @@ body{font-family:'Exo',sans-serif;background:var(--paper);color:var(--ink);font-
 .orbag-note-text{font-size:13px;color:var(--forest)}
 .report-footer{margin-top:28px;padding-top:20px;border-top:1px solid var(--line);display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between}
 .footer-note{font-size:11px;color:var(--stone);font-style:italic;max-width:500px;line-height:1.5}
-@media(max-width:600px){.form-grid{grid-template-columns:1fr}.kpi-grid{grid-template-columns:1fr 1fr}.scenario-grid{grid-template-columns:1fr}.main{padding:20px 16px}.card{padding:20px}}
-@media print{.header,.progress-bar,.report-footer,.btn-primary{display:none!important}.report{display:block!important}body{background:white}}
+/* ── TRANSITION VIEW (deterministic engine output) ── */
+.fhead{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:22px}
+.fnum{border-radius:var(--radius);padding:16px 18px;border:1px solid var(--line)}
+.fnum-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+.fnum-val{font-family:'Sigmar',cursive;font-size:26px;line-height:1.1}
+.fnum-sub{font-size:11px;margin-top:5px;line-height:1.4}
+.fnum.green{background:var(--mint);border-color:var(--leaf)}
+.fnum.green .fnum-label,.fnum.green .fnum-val{color:var(--forest)}
+.fnum.green .fnum-sub{color:#1a5011}
+.fnum.neutral{background:var(--paper)}
+.fnum.neutral .fnum-label{color:var(--stone)}
+.fnum.neutral .fnum-val{color:var(--ink)}
+.fnum.red{background:var(--red-l);border-color:#F09595}
+.fnum.red .fnum-label,.fnum.red .fnum-val{color:var(--red)}
+.fnum.red .fnum-sub{color:#791F1F}
+.cf-strip{display:flex;gap:6px;align-items:flex-end;padding:8px 0;margin-bottom:6px}
+.cf-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;justify-content:flex-end}
+.cf-bars{display:flex;gap:3px;align-items:flex-end;height:120px;width:100%;justify-content:center}
+.cf-bar{width:14px;border-radius:3px 3px 0 0;min-height:2px}
+.cf-bar.conv{background:#C9D3CB}
+.cf-bar.regen{background:var(--leaf)}
+.cf-yr{font-size:10px;color:var(--stone)}
+.cf-payback{font-size:9px;font-weight:700;color:var(--forest);background:var(--mint);border:1px solid var(--leaf);border-radius:4px;padding:1px 5px}
+.cf-legend{display:flex;gap:16px;font-size:11px;color:var(--stone);margin-bottom:8px}
+.cf-key{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:middle}
+.ftable{width:100%;border-collapse:collapse;font-size:12px}
+.ftable th{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--stone);text-align:right;padding:6px 8px;border-bottom:1px solid var(--line)}
+.ftable th:first-child{text-align:left}
+.ftable td{padding:7px 8px;border-bottom:0.5px solid var(--line);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.ftable td:first-child{text-align:left;font-weight:500;color:var(--forest)}
+.ftable td.neg{color:var(--red)}
+.ftable td.pos{color:#2d7a1e}
+.callout-warn{background:var(--amber-l);border:1px solid #FAC775;border-radius:8px;padding:12px 16px;margin-bottom:14px;font-size:13px;color:#633806}
+.callout-ok{background:var(--mint);border:1px solid var(--leaf);border-radius:8px;padding:12px 16px;margin-bottom:14px;font-size:13px;color:var(--forest)}
+@media(max-width:600px){.form-grid{grid-template-columns:1fr}.kpi-grid{grid-template-columns:1fr 1fr}.scenario-grid{grid-template-columns:1fr}.main{padding:20px 16px}.card{padding:20px}.fhead{grid-template-columns:1fr}}
+@media print{
+ .header,.progress-bar,.report-footer,.btn-primary{display:none!important}
+ .report{display:block!important}
+ body{background:white;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+ .fnum,.cf-bar,.cf-payback,.kpi-card,.verdict-bar,.scenario,.orbag-note,.callout-warn,.callout-ok{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+ .section,.fhead,.cf-strip{break-inside:avoid;page-break-inside:avoid}
+ .ftable tr{break-inside:avoid;page-break-inside:avoid}
+}
 </style>
 </head>
 <body>
@@ -161,6 +202,7 @@ const REGION_MAP = {
     if (p.name) document.getElementById('farmName').value = p.name;
     if (p.hectares) document.getElementById('totalHa').value = p.hectares;
     if (p.soil_type) document.getElementById('soilType').value = p.soil_type;
+    if (p.certification) document.getElementById('currentCert').value = p.certification;
     if (p.region && REGION_MAP[p.region]) {
       document.getElementById('farmRegion').value = REGION_MAP[p.region];
     }
@@ -420,6 +462,74 @@ function getFormData() {
   };
 }
 
+// nl-NL euro formatting, consistent with the buyer CFO report
+const fmtNL = n => '€' + Math.round(Number(n) || 0).toLocaleString('nl-NL');
+const FARMER_CROP_LABEL = {
+  wintertarwe:'Winter wheat', pootaardappelen:'Seed potatoes', suikerbieten:'Sugar beet',
+  consumptieaardappelen:'Ware potatoes', uien:'Onions', gerst:'Barley', haver:'Oats',
+  erwten:'Peas / legumes', sperziebonen:'Green beans',
+};
+
+// Multi-year transition cashflow strip — conventional vs regen €/ha per year, with a payback marker
+function renderCashflow(m) {
+  if (!m || !m.cashflow || !m.cashflow.length) return '';
+  const maxVal = Math.max.apply(null, m.cashflow.map(r => Math.max(r.conventional_ha, r.regen_ha))) || 1;
+  const h = v => Math.max(2, Math.round((v / maxVal) * 120));
+  const cols = m.cashflow.map(r => `
+      <div class="cf-col">
+        <div class="cf-bars">
+          <div class="cf-bar conv"  style="height:${h(r.conventional_ha)}px" title="Conventional ${fmtNL(r.conventional_ha)}/ha"></div>
+          <div class="cf-bar regen" style="height:${h(r.regen_ha)}px" title="Regen ${fmtNL(r.regen_ha)}/ha"></div>
+        </div>
+        ${m.payback_year === r.year ? `<span class="cf-payback">Payback</span>` : ''}
+        <span class="cf-yr">Yr ${r.year}</span>
+      </div>`).join('');
+  const rows = m.cashflow.map(r => `
+      <tr>
+        <td>Year ${r.year}</td>
+        <td>${fmtNL(r.conventional_ha)}</td>
+        <td>${fmtNL(r.regen_ha)}</td>
+        <td>${r.capex_ha ? '−' + fmtNL(r.capex_ha) : '—'}</td>
+        <td class="${r.delta_ha>=0?'pos':'neg'}">${r.delta_ha>=0?'+':'−'}${fmtNL(Math.abs(r.delta_ha))}</td>
+        <td class="${r.cumulative_delta_ha>=0?'pos':'neg'}">${r.cumulative_delta_ha>=0?'+':'−'}${fmtNL(Math.abs(r.cumulative_delta_ha))}</td>
+      </tr>`).join('');
+  return `
+    <div class="section">
+      <div class="section-title">Multi-year transition cashflow (€/ha)</div>
+      <div class="cf-legend">
+        <span><span class="cf-key" style="background:#C9D3CB"></span>Conventional (staying put)</span>
+        <span><span class="cf-key" style="background:var(--leaf)"></span>Regen (transitioning)</span>
+      </div>
+      <div class="cf-strip">${cols}</div>
+      <table class="ftable">
+        <thead><tr><th>Year</th><th>Conventional</th><th>Regen</th><th>Transition cost</th><th>Delta/ha</th><th>Cumulative</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+}
+
+// Per-crop regen economics — transparency on where the uplift comes from
+function renderPerCrop(m) {
+  if (!m || !m.per_crop || !m.per_crop.length) return '';
+  const rows = m.per_crop.map(c => `
+      <tr>
+        <td>${FARMER_CROP_LABEL[c.crop] || c.crop}${c.verified ? '' : ' <span style="font-size:9px;color:var(--amber);font-weight:700">EST.</span>'}</td>
+        <td class="pos">+${fmtNL(c.premium_rev_ha)}</td>
+        <td class="pos">+${fmtNL(c.input_saving_ha)}</td>
+        <td class="pos">+${fmtNL(c.carbon_ha)}</td>
+        <td class="neg">−${fmtNL(c.yield_loss_ha)}</td>
+        <td class="pos" style="font-weight:600">+${fmtNL(c.steady_uplift_ha)}</td>
+      </tr>`).join('');
+  return `
+    <div class="section">
+      <div class="section-title">Per-crop regen economics (€/ha at full transition)</div>
+      <table class="ftable">
+        <thead><tr><th>Crop</th><th>Premium</th><th>Input saving</th><th>Carbon</th><th>Yield effect</th><th>Net uplift</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+}
+
 function renderReport(d, fd) {
   const regionLabel = document.getElementById('farmRegion').options[document.getElementById('farmRegion').selectedIndex].text;
   document.getElementById('rTitle').textContent = `Regen transition businesscase · ${fd.farmName}`;
@@ -429,8 +539,46 @@ function renderReport(d, fd) {
   const vClass={GO:'verdict-go',CONDITIONAL_GO:'verdict-go',NO_GO:'verdict-no'};
   const vLabels={GO:'Go — transition is financially viable',CONDITIONAL_GO:'Conditional go — viable with right buyer',NO_GO:'Not recommended yet'};
   const k=d.kpis;
+  const m=d.model||{};
+  const tol = (fd.incomeDrop != null ? Number(fd.incomeDrop) : 100);
+  const paybackTxt = k.payback_period ? `Year ${k.payback_period}` : `> ${m.horizon_years||7} yr`;
+  // Worst-year income dip vs the farmer's stated tolerance
+  const dipOk = (m.max_income_drop_ha||0) <= tol;
+  const dipCallout = (m.max_income_drop_ha||0) > 0 ? `
+    <div class="${dipOk?'callout-ok':'callout-warn'}">
+      <b>Worst-year income dip: ${fmtNL(m.max_income_drop_ha)}/ha</b> (in the transition years) vs your tolerance of ${fmtNL(tol)}/ha —
+      ${dipOk ? 'within tolerance.' : 'above tolerance: bridge finance or a phased transition is advised.'}
+    </div>` : '';
+  // Cost of waiting (if modelled): how far the conventional baseline erodes over the horizon
+  let cowCallout = '';
+  if (m.cost_of_waiting && m.cost_of_waiting.enabled && m.cashflow && m.cashflow.length) {
+    const last = m.cashflow[m.cashflow.length-1];
+    const gap = (k.current_income_ha||0) - last.conventional_ha;
+    if (gap > 0) cowCallout = `
+    <div class="callout-warn">
+      <b>The cost of waiting:</b> staying conventional, your margin is modelled to erode ~${Math.round((m.cost_of_waiting.conv_margin_erosion_pct+m.cost_of_waiting.input_cost_inflation_pct)*100)}%/yr (margin pressure + input-cost inflation) — about ${fmtNL(gap)}/ha lower by year ${last.year} than today. <span style="font-size:11px;opacity:.8">(provisional assumption)</span>
+    </div>`;
+  }
 
   let html=`
+    <div class="fhead">
+      <div class="fnum neutral">
+        <div class="fnum-label">Current income</div>
+        <div class="fnum-val">${fmtNL(k.current_income_ha)}<span style="font-size:13px;font-family:'Exo',sans-serif;font-weight:400">/ha</span></div>
+        <div class="fnum-sub">Your conventional baseline today</div>
+      </div>
+      <div class="fnum green">
+        <div class="fnum-label">Regen income</div>
+        <div class="fnum-val">${fmtNL(k.regen_income_ha)}<span style="font-size:13px;font-family:'Exo',sans-serif;font-weight:400">/ha</span></div>
+        <div class="fnum-sub">At full transition (+${fmtNL(m.steady_uplift_ha)}/ha uplift)</div>
+      </div>
+      <div class="fnum green">
+        <div class="fnum-label">Net value</div>
+        <div class="fnum-val">${fmtNL(d.net_value)}<span style="font-size:13px;font-family:'Exo',sans-serif;font-weight:400">/yr</span></div>
+        <div class="fnum-sub">Steady-state, whole farm (${fmtNL(m.net_value_cumulative)} over ${m.horizon_years||7} yr)</div>
+      </div>
+    </div>
+
     <div class="verdict-bar ${vClass[d.verdict]}">
       <span class="verdict-icon">${vIcons[d.verdict]}</span>
       <div>
@@ -438,41 +586,49 @@ function renderReport(d, fd) {
         <div style="font-size:14px">${d.verdict_reason}</div>
       </div>
     </div>
+
+    ${dipCallout}
+    ${cowCallout}
+
     <div class="section">
       <div class="section-title">Key metrics</div>
       <div class="kpi-grid">
         <div class="kpi-card">
           <div class="kpi-label">Current income/ha</div>
-          <div class="kpi-val">€${k.current_income_ha}</div>
+          <div class="kpi-val">${fmtNL(k.current_income_ha)}</div>
           <div class="kpi-sub">conventional baseline</div>
         </div>
         <div class="kpi-card">
           <div class="kpi-label">Regen income/ha</div>
-          <div class="kpi-val">€${k.regen_income_ha}</div>
+          <div class="kpi-val">${fmtNL(k.regen_income_ha)}</div>
           <div class="kpi-sub">at full transition</div>
         </div>
         <div class="kpi-card">
           <div class="kpi-label">Input cost saving</div>
-          <div class="kpi-val">${k.input_saving_ha}</div>
-          <div class="kpi-sub">fertiliser + chemicals</div>
+          <div class="kpi-val">${fmtNL(k.input_saving_ha)}</div>
+          <div class="kpi-sub">fertiliser + chemicals/ha</div>
         </div>
         <div class="kpi-card">
           <div class="kpi-label">Transition period</div>
-          <div class="kpi-val">${k.transition_years}</div>
+          <div class="kpi-val">${k.transition_years} yr</div>
           <div class="kpi-sub">to full regen income</div>
         </div>
         <div class="kpi-card">
           <div class="kpi-label">Payback period</div>
-          <div class="kpi-val">${k.payback_period}</div>
+          <div class="kpi-val">${paybackTxt}</div>
           <div class="kpi-sub">transition cost recovery</div>
         </div>
         <div class="kpi-card">
           <div class="kpi-label">Carbon credit potential</div>
-          <div class="kpi-val">${k.carbon_potential_ha}</div>
+          <div class="kpi-val">${fmtNL(k.carbon_potential_ha)}</div>
           <div class="kpi-sub">additional income/ha/yr</div>
         </div>
       </div>
     </div>
+
+    ${renderCashflow(m)}
+    ${renderPerCrop(m)}
+
     <div class="section">
       <div class="section-title">Income analysis</div>
       <div class="prose"><p>${d.income_analysis}</p></div>
@@ -486,19 +642,19 @@ function renderReport(d, fd) {
       <div class="scenario-grid">
         <div class="scenario sc-opt">
           <div class="sc-label">Optimistic</div>
-          <div class="sc-val">${d.scenarios.optimistic.net_income_ha}</div>
+          <div class="sc-val">${fmtNL(d.scenarios.optimistic.net_income_ha)}</div>
           <div class="sc-price">${d.scenarios.optimistic.timeline}</div>
           <div class="sc-note">${d.scenarios.optimistic.note}</div>
         </div>
         <div class="scenario sc-base">
           <div class="sc-label">Base case</div>
-          <div class="sc-val">${d.scenarios.base.net_income_ha}</div>
+          <div class="sc-val">${fmtNL(d.scenarios.base.net_income_ha)}</div>
           <div class="sc-price">${d.scenarios.base.timeline}</div>
           <div class="sc-note">${d.scenarios.base.note}</div>
         </div>
         <div class="scenario sc-pes">
           <div class="sc-label">Conservative</div>
-          <div class="sc-val">${d.scenarios.pessimistic.net_income_ha}</div>
+          <div class="sc-val">${fmtNL(d.scenarios.pessimistic.net_income_ha)}</div>
           <div class="sc-price">${d.scenarios.pessimistic.timeline}</div>
           <div class="sc-note">${d.scenarios.pessimistic.note}</div>
         </div>
@@ -527,7 +683,7 @@ function renderReport(d, fd) {
       <div class="orbag-note-text">${d.orbag_note}</div>
     </div>
     <div class="report-footer">
-      <div class="footer-note">AI-generated preliminary analysis based on KWIN-AGV 2024 benchmarks and regional data. Figures are indicative — precise terms subject to farm-level verification and buyer contract negotiation.</div>
+      <div class="footer-note">Figures computed by Orbag's deterministic transition engine from KWIN-AGV 2024 (WUR/BIJ12) benchmarks; the AI writes the narrative only. The multi-year model (yield-dip, premium/input ramp, carbon, transition capex, cost-of-waiting) uses provisional economic assumptions — indicative, subject to farm-level verification and buyer contract negotiation.</div>
       <div style="display:flex;gap:8px;flex-shrink:0">
         <button class="btn-outline" onclick="resetForm()">New report</button>
         <button class="btn-outline" onclick="window.print()">Print / save PDF</button>

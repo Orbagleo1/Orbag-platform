@@ -188,6 +188,14 @@ input:focus,select:focus{border-color:var(--leaf)}
 <div class="crop-check" data-crop="peas" onclick="toggleCrop(this)">Peas</div>
 <div class="crop-check" data-crop="carrots" onclick="toggleCrop(this)">Carrots</div>
 </div>
+<label style="margin-top:16px">Current certification</label>
+<select id="pCert">
+<option value="none">None / conventional</option>
+<option value="globalgap">GlobalGAP</option>
+<option value="on_the_way">On the Way to PlanetProof</option>
+<option value="organic">Organic certified (EKO)</option>
+<option value="demeter">Demeter</option>
+</select>
 </div>
 
 <div class="btn-row">
@@ -314,6 +322,7 @@ async function showProfile(user) {
   document.querySelectorAll('.crop-check').forEach(el => {
     el.classList.toggle('selected', selectedCrops.includes(el.dataset.crop));
   });
+  document.getElementById('pCert').value = profile.certification || 'none';
   document.getElementById('pSector').value = profile.sector || '';
   document.getElementById('pBudget').value = profile.budget || '';
 
@@ -372,6 +381,7 @@ async function saveProfile() {
     update.hectares = parseFloat(document.getElementById('pHectares').value) || null;
     update.soil_type = document.getElementById('pSoil').value;
     update.crops = selectedCrops;
+    update.certification = document.getElementById('pCert').value;
   } else {
     update.sector = document.getElementById('pSector').value;
     update.budget = parseFloat(document.getElementById('pBudget').value) || null;
