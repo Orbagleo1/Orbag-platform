@@ -320,16 +320,40 @@ var SCENARIOS = {
 // They are surfaced as explicit parameters, never buried in the math, and must NOT be presented as
 // established biology — a plant pathologist fills these later (ideally a per-(crop,pest) table).
 var CROP_CONCENTRATION = {
-  // Pest-spread radius (km) per crop. potatoes = worked example: late blight / phytophthora is
-  // wind-borne, so a larger effective radius than soil-borne pests. Absent crop => layer unavailable.
-  radius_km: { potatoes: 15 },                         // verified:false — voorlopige aanname, agronomische validatie vereist
-  // THREE-LEVEL threshold model on the same-crop share (NOT a continuous curve). CFO one-liner:
-  // "above <high> same-crop share within the pest radius, we raise the risk add-on to <high>%".
-  thresholds: { medium: 0.20, high: 0.45 },            // verified:false — voorlopige aanname, agronomische validatie vereist
-  addon_pct:  { low: 0.01, medium: 0.03, high: 0.06 }, // add-on as % of contract value // verified:false — voorlopige aanname
-  regen_addon_pct: 0.01,                               // diversified near-shored baseline // verified:false — voorlopige aanname
+  // ── KNOB 1: pest-spread radius per crop (km) — literature-grounded for potatoes ──
+  // The pipeline reads .km; mode/confidence/source document provenance. A crop ABSENT here reports
+  // "unavailable" (fail-soft) — fill it from a pathogen source, never guess.
+  radius: {
+    potatoes: { km: 15, mode: 'wind-borne fungal (Phytophthora infestans / late blight)', confidence: 'MEDIUM',
+      // ≥16 km field separation is needed to fully prevent regional late-blight epidemic spread; wind-borne
+      // sporangia travel 10–20 km in <3 h. 15 km = slightly conservative mid-range effective radius.
+      source: 'Firester et al. 2018, Plant Pathology (regional P. infestans modelling, ≥16 km separation); APS review PHYTO-04-18-0130-IA (10–20 km wind dispersal); Hannukkala et al. 2007 (lack of rotation → earlier/larger epidemics)' },
+    // Other crops are not individually sourced yet → unavailable until filled. Use the mode guide
+    // below + a pathogen-specific source; set the per-crop `confidence` honestly.
+  },
+  // Dispersal-mode guide (km) for FILLING new crops later — REFERENCE ONLY, not auto-applied:
+  // wind-borne fungal (blights/rusts) ~15; insect-vectored virus ~5; soil-borne (nematodes/Rhizoctonia) ~2.
+  radius_mode_guide_km: { wind_fungal: 15, vector_virus: 5, soil_borne: 2 },
+
+  // ── KNOB 2: concentration → risk. THREE-LEVEL THRESHOLD model (NOT linear) ──
+  // The STEP form is evidence-based: pathogen invasion across a landscape is a PERCOLATION phenomenon —
+  // risk climbs sharply once the same-crop host fraction crosses a critical connectivity threshold, so a
+  // threshold model fits better than a linear curve. Threshold POSITIONS are grounded; ADD-ON MAGNITUDES
+  // are not. Critical host fraction in the literature: ~0.33 empirical (Davis et al. 2008, PNAS-percolation
+  // threshold) up to ~0.41 static percolation, and spatial clustering of the same crop LOWERS it further:
+  //   share < 0.30          -> subcritical: spread stays local                       -> low add-on
+  //   0.30 ≤ share < 0.50   -> transition zone around the percolation threshold      -> medium add-on
+  //   share ≥ 0.50          -> supercritical: connected host matrix, landscape epidemic possible -> high
+  thresholds: { medium: 0.30, high: 0.50 }, // CONFIDENCE MEDIUM (percolation theory). verified:false — agronomische validatie vereist
+  // Add-on as % of contract value per regime. CONFIDENCE LOW (expert-prior): ordering follows the
+  // percolation regimes; magnitudes are anchored loosely to the engine's other risk add-ons
+  // (geopolitical ~4–15%) — high=0.06 sits mid-range, low=0.01 ≈ noise. Validate with a plant pathologist.
+  addon_pct: { low: 0.01, medium: 0.03, high: 0.06 }, // verified:false — voorlopige aanname, agronomische validatie vereist
+  regen_addon_pct: 0.01,                              // diversified near-shored baseline // verified:false
   verified: false,
 };
+// Effective pest-spread radius (km) for a crop, or null when not sourced (=> layer unavailable, fail-soft).
+function cropRadiusKm(crop) { var r = CROP_CONCENTRATION.radius[crop]; return r && r.km != null ? r.km : null; }
 
 // Parcel-source registry, keyed by country (like REGIONAL_CROP_DATA). nl => BRP (PDOK/RVO).
 // uk/dk/pt are EXPLICIT empty stubs: LPIS availability/coverage per country is UNVERIFIED and must be
@@ -384,7 +408,7 @@ function concentrationLevel(share) {
 // Pure pipeline: same-crop area share within the pest radius around the farm -> risk model.
 // parcels each carry {crop, lat, lon, area_ha}. Returns an explicit available/unavailable result.
 function concentrationFromParcels(farmLat, farmLon, crop, parcels, sourceLabel, basis) {
-  var radius = CROP_CONCENTRATION.radius_km[crop];
+  var radius = cropRadiusKm(crop);
   if (radius == null) return { available: false, reason: 'no pest-radius defined for crop "' + crop + '" (agronomy knob unfilled)' };
   if (farmLat == null || farmLon == null) return { available: false, reason: 'no farm coordinates supplied' };
   var inR = parcels.filter(function (p) { return haversineKm(farmLat, farmLon, p.lat, p.lon) <= radius; });
@@ -437,7 +461,7 @@ function ringAreaHa(ring) {
 }
 async function getBRPConcentration(farmLat, farmLon, crop, cap) {
   cap = cap || 6000;
-  var radius = CROP_CONCENTRATION.radius_km[crop];
+  var radius = cropRadiusKm(crop);
   if (radius == null) return { available: false, reason: 'no pest-radius for crop "' + crop + '"' };
   var match = BRP_CROP_MATCH[crop];
   if (!match) return { available: false, reason: 'no BRP crop mapping for "' + crop + '"' };
@@ -681,6 +705,8 @@ function calculate(d, sc, mkt) {
       parcel_count_in_radius: cropConc.count != null ? cropConc.count : null,
       source_label: cropConc.source_label || null,
       basis: cropConc.basis || null,
+      radius_confidence: (CROP_CONCENTRATION.radius[crop] && CROP_CONCENTRATION.radius[crop].confidence) || null,
+      model: 'three-level percolation threshold — threshold positions MEDIUM confidence, add-on magnitudes LOW (expert-prior); agronomy knobs verified:false, validate with a plant pathologist',
       verified: false,
     } : { available: false, status: 'not requested (no farm coordinates supplied)' },
     logistics: logistics_breakdown,

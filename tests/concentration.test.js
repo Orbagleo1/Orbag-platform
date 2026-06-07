@@ -33,11 +33,17 @@ var ex = eng.DRONTEN_EXAMPLE;
   check('Dronten verified',     c.verified, false);
 })();
 
-// ── Threshold model boundaries (three-level) ──────────────────────────────────
+// ── Threshold model boundaries — percolation-grounded (medium 0.30, high 0.50) ──
+function levelAt(potatoHa, wheatHa) {
+  return eng.concentrationFromParcels(52.53, 5.72, 'potatoes',
+    [{crop:'potatoes',lat:52.53,lon:5.72,area_ha:potatoHa},{crop:'wheat',lat:52.531,lon:5.721,area_ha:wheatHa}], 't').level;
+}
 (function () {
-  check('level 0.10 -> low',    eng.concentrationFromParcels(52.53,5.72,'potatoes',[{crop:'potatoes',lat:52.53,lon:5.72,area_ha:10},{crop:'wheat',lat:52.531,lon:5.721,area_ha:90}],'t').level, 'low');
-  check('level 0.30 -> medium', eng.concentrationFromParcels(52.53,5.72,'potatoes',[{crop:'potatoes',lat:52.53,lon:5.72,area_ha:30},{crop:'wheat',lat:52.531,lon:5.721,area_ha:70}],'t').level, 'medium');
-  check('level 0.45 -> high',   eng.concentrationFromParcels(52.53,5.72,'potatoes',[{crop:'potatoes',lat:52.53,lon:5.72,area_ha:45},{crop:'wheat',lat:52.531,lon:5.721,area_ha:55}],'t').level, 'high');
+  check('share 0.20 -> low (subcritical)',          levelAt(20, 80), 'low');
+  check('share 0.30 -> medium (threshold)',         levelAt(30, 70), 'medium');
+  check('share 0.45 -> medium (transition zone)',   levelAt(45, 55), 'medium');
+  check('share 0.50 -> high (percolation)',         levelAt(50, 50), 'high');
+  check('share 0.60 -> high (supercritical)',       levelAt(60, 40), 'high');
 })();
 
 // ── Fail-soft: crop without an agronomy radius knob is unavailable, not zeroed ─

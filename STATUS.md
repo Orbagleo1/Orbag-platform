@@ -2,7 +2,7 @@
 
 _Living progress doc. Connected to the claude.ai Orbag Project via the GitHub connector so "where we are" is always visible there._
 
-**Last updated:** 2026-06-07 (crop-concentration risk layer with live BRP source; earlier today: buyer-location request field + engine regression fixtures + "Adding a new region" docs; all deployed and verified live on orbag.online)
+**Last updated:** 2026-06-07 (crop-concentration risk layer with live BRP source + literature-calibrated agronomy knobs; earlier today: buyer-location request field + engine regression fixtures + "Adding a new region" docs; all deployed and verified live on orbag.online)
 
 Legend: ✅ done & verified · 🟡 in progress · ⬜ planned / backlog
 
@@ -41,7 +41,8 @@ JS engine computes every number; Haiku only writes the narrative (two-call desig
 - ✅ **Buyer-vs-farm separation** — production data is tied to where the crop is grown; logistics + customs are a function of the buyer (`customsCost()` gates import duty by EU-membership vs the buyer), so UK→NL pays the GB→EU charge while UK→UK would not.
 - ✅ **Buyer location is a request field** (`buyerLocation` in `analyse.html`, default NL) — `customsCost()` is buyer-aware so UK→NL pays the GB→EU duty (€45/t) while UK→UK pays none. Back-compat: missing/unknown ⇒ EU buyer, so existing submissions are byte-identical. Live-verified end-to-end on orbag.online.
 - ✅ **Engine regression fixtures** (`tests/engine.test.js`, run `node tests/engine.test.js`) — offline, no network; lock the computed nl / uk→nl / uk→uk numbers so a future change can't silently shift an existing farm's figures. Run before any engine change.
-- ✅ **Crop-concentration risk layer** (todo2, `crop_concentration`) — same-crop area share within a per-crop pest radius → low/medium/high risk add-on. Enrichment: activates only when the request carries `farm_lat`/`farm_lon` (fixtures unaffected). NL source = **live BRP (PDOK/RVO WFS)** with a density preflight — computes live on feasible radii, defers with the exact parcel count where too dense (15 km in Flevoland ≈ 43k parcels → offline precompute needed; PDOK WFS has no server-side crop filter). Dronten example set drives offline tests (`node tests/concentration.test.js`). The pest **radius** + concentration **thresholds/add-ons** are provisional agronomy knobs (`verified:false`, validate with a plant pathologist). NDVI/Sentinel deferred. uk/dk/pt parcel sources are fail-loud stubs.
+- ✅ **Crop-concentration risk layer** (todo2, `crop_concentration`) — same-crop area share within a per-crop pest radius → low/medium/high risk add-on. Enrichment: activates only when the request carries `farm_lat`/`farm_lon` (fixtures unaffected). NL source = **live BRP (PDOK/RVO WFS)** with a density preflight — computes live on feasible radii, defers with the exact parcel count where too dense (15 km in Flevoland ≈ 43k parcels → offline precompute needed; PDOK WFS has no server-side crop filter). Dronten example set drives offline tests (`node tests/concentration.test.js`). NDVI/Sentinel deferred. uk/dk/pt parcel sources are fail-loud stubs.
+- ✅ **Concentration agronomy knobs calibrated** (still `verified:false`) — **radius** potatoes 15 km, MEDIUM confidence (≥16 km late-blight separation + 10–20 km wind dispersal; Firester 2018 / APS / Hannukkala 2007); **threshold curve** is a three-level step model (justified: invasion is a percolation phenomenon, critical host fraction ~0.33–0.41), positions MEDIUM (`medium 0.30 / high 0.50`), add-on magnitudes (1/3/6%) LOW/expert-prior. Each carries source + confidence in code; validate with a plant pathologist before treating as real.
 
 ## 4. International & self-bootstrapping regions
 Adding a country is a DB row (or an auto-bootstrap), not a code deploy.
