@@ -59,6 +59,7 @@ Adding a country is a DB row (or an auto-bootstrap), not a code deploy.
 - ✅ All work committed and pushed to `github.com/Orbagleo1/Orbag-platform` (main).
 - ✅ Migrations under `supabase/migrations/` now include the regional layer: `create_regional_data_tables`, `add_country_to_profiles`, `bootstrap_region_function`, `report_save_rpcs` (all applied to the remote + committed).
 - ✅ Serverless: `api/generate.js` (buyer), `api/farmer.js` (farmer), `api/bootstrap-region.js` (new-region auto-bootstrap).
+- ✅ **Engine test harness** — `tests/engine.test.js` (run `node tests/engine.test.js`, no deps): offline regression fixtures locking the nl / uk→nl / uk→uk computed numbers. Briefing docs for autonomous sessions live under `operations/`.
 - 🟡 **Partial migration history in repo** — session migrations are committed; 7 earlier ones exist only in the remote DB. Run `supabase db pull` for a full baseline.
 
 ---
@@ -73,6 +74,7 @@ Adding a country is a DB row (or an auto-bootstrap), not a code deploy.
 - ⬜ Optional: weekly summary email (not just held-alerts).
 - ⬜ Optional: `reply_to` on the alert email (left out in a revert).
 - ⬜ Optional: "cool-down" on weather risk so it can't drift up indefinitely during a long drought.
+- ⬜ Account hygiene: remove the stray `orbag.eu` domain from the Vercel "orbag" team — it is not in the code, not a project domain, and not serving anything (live runs on `orbag.online`); the CLI reports "no access", so it needs the Vercel dashboard (Team → Settings → Domains).
 
 ---
 
