@@ -101,6 +101,11 @@ async function rpc(p) {
       cell_km: CELL_KM, radius_km: RADIUS, share: share, level: lvl.level, addon_pct: lvl.addon_pct,
       same_crop_ha: Math.round(same), total_ha: Math.round(total), n_parcels: inR.length,
       source_label: 'BRP Gewaspercelen (PDOK/RVO)' + (year ? ' ' + year : ''), brp_year: year, verified: false,
+      // Provenance (worldwide provider foundation) — this script is the Tier-1 NL BRP precompute.
+      // A global Tier-2 (WorldCereal) / Tier-3 (cropland) precompute upserts the same row shape with
+      // source_id 'worldcereal'/'cropland-proxy', granularity 'crop_group_raster'/'cropland_only',
+      // confidence 'MEDIUM'/'LOW', and the relevant country.
+      source_id: 'nl-brp', granularity: 'crop_type_parcel', confidence: 'HIGH', country: 'nl',
     });
     written++;
     console.log('  cell ' + (p + 1) + '/' + pts.length + '  ' + pt.lat.toFixed(4) + ',' + pt.lon.toFixed(4) +

@@ -53,11 +53,35 @@ function levelAt(potatoHa, wheatHa) {
   checkTrue('wheat reason mentions pest-radius', /pest-radius/.test(c.reason));
 })();
 
-// ── Fail-loud: a country without a filled parcel source ───────────────────────
+// ── Fail-loud: a country without a filled parcel source (sync/offline resolver) ─
 (function () {
-  var c = eng.resolveConcentration({ crop: 'potatoes', currentSource: 'uk', farm_lat: 52.6, farm_lon: 1.3, farm_country: 'uk' }, {});
+  var c = eng.resolveConcentrationSync({ crop: 'potatoes', currentSource: 'uk', farm_lat: 52.6, farm_lon: 1.3, farm_country: 'uk' }, {});
   check('uk parcel source unavailable', c.available, false);
   checkTrue('uk reason mentions LPIS/unverified', /LPIS|UNVERIFIED|stub/.test(c.reason));
+})();
+
+// ── Provider registry: capability-based selection (worldwide foundation) ──────
+(function () {
+  var P = eng.CONCENTRATION_PROVIDERS;
+  var byId = {}; P.forEach(function (p) { byId[p.id] = p; });
+  checkTrue('nl-brp is tier-1 HIGH parcel', byId['nl-brp'].tier === 1 && byId['nl-brp'].confidence === 'HIGH' && byId['nl-brp'].granularity === 'crop_type_parcel');
+  checkTrue('worldcereal is tier-2 global', byId['worldcereal'].tier === 2 && byId['worldcereal'].coverage.type === 'global');
+  checkTrue('cropland-proxy is tier-3 LOW', byId['cropland-proxy'].tier === 3 && byId['cropland-proxy'].confidence === 'LOW');
+  // nl-brp applies only to NL; global providers apply anywhere (subject to crop).
+  checkTrue('nl-brp applies for (nl, potatoes)',   eng.providerApplies(byId['nl-brp'], 'nl', 'potatoes'));
+  check('nl-brp does NOT apply for (fr, potatoes)', eng.providerApplies(byId['nl-brp'], 'fr', 'potatoes'), false);
+  checkTrue('worldcereal applies for (fr, wheat)',  eng.providerApplies(byId['worldcereal'], 'fr', 'wheat'));
+  check('worldcereal does NOT apply for (fr, potatoes)', eng.providerApplies(byId['worldcereal'], 'fr', 'potatoes'), false);
+  checkTrue('cropland-proxy applies for (fr, potatoes)', eng.providerApplies(byId['cropland-proxy'], 'fr', 'potatoes'));
+})();
+
+// ── Sync resolver tags NL example with provenance ─────────────────────────────
+(function () {
+  var c = eng.resolveConcentrationSync({ crop: 'potatoes', currentSource: 'netherlands', farm_lat: 52.53, farm_lon: 5.72, farm_country: 'nl' }, {});
+  check('nl example available',  c.available, true);
+  check('nl example provider',   c.provider, 'nl-example');
+  check('nl example confidence', c.confidence, 'HIGH');
+  check('nl example method',     c.method, 'crop_type_parcel');
 })();
 
 // ── Engine integration: layer + totals only when farm coords are supplied ─────
@@ -74,6 +98,9 @@ var base = {
   check('layer current = cv*0.06', layer.current, Math.round(500 * 300 * 0.06)); // 9000
   check('layer regen = cv*0.01',   layer.regen,   Math.round(500 * 300 * 0.01)); // 1500
   check('concentration computed',  withCoords.concentration.status, 'computed');
+  check('concentration provider',  withCoords.concentration.provider, 'nl-example');
+  check('concentration confidence',withCoords.concentration.confidence, 'HIGH');
+  check('concentration method',    withCoords.concentration.method, 'crop_type_parcel');
   // Without coords: no layer, status explicit, totals untouched (todo.md fixtures stay valid).
   check('no layer without coords', noCoords.layers.filter(function (l) { return l.layer === 'Crop concentration'; }).length, 0);
   checkTrue('not-requested status', /not requested/.test(noCoords.concentration.status));

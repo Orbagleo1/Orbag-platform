@@ -359,12 +359,40 @@ function cropRadiusKm(crop) { var r = CROP_CONCENTRATION.radius[crop]; return r 
 // uk/dk/pt are EXPLICIT empty stubs: LPIS availability/coverage per country is UNVERIFIED and must be
 // checked before use — do NOT assume EU-wide coverage. An unfilled country fails loud (explicit
 // unavailable reason), never a silent zero.
-var PARCEL_SOURCES = {
-  nl: { kind: 'brp', label: 'BRP Gewaspercelen (PDOK/RVO)' },
-  // uk: { kind: 'lpis', label: 'UK LPIS — UNVERIFIED coverage post-Brexit, TODO before use' },
-  // dk: { kind: 'lpis', label: 'DK LPIS (IACS) — UNVERIFIED coverage, TODO before use' },
-  // pt: { kind: 'lpis', label: 'PT LPIS (iSIP) — UNVERIFIED coverage, TODO before use' },
-};
+// ── CONCENTRATION PROVIDER REGISTRY (worldwide foundation) ──
+// Crop concentration is measurable at three DATA TIERS; each provider declares its capability so the
+// resolution chain (resolveConcentrationGlobal) can pick the best available source for ANY farm
+// worldwide and label the result honestly (provider + method + confidence + coverage), degrading to an
+// explicit "no source yet" — never a silent or faked number.
+//   tier 1  crop_type_parcel   HIGH    per-country parcel registries — true same-crop share, any crop
+//   tier 2  crop_group_raster  MEDIUM  global coarse crop groups (cereals/maize) — ESA WorldCereal
+//   tier 3  cropland_only      LOW     global cropland-presence proxy — ESA WorldCover / Dynamic World
+// The precompute cache (crop_concentration_grid) is keyed by lat/lon, so it is the UNIVERSAL GLOBAL
+// store: any provider that precomputes cells anywhere makes those farms resolvable instantly.
+// To add a country/source: add a provider here (+ a precompute path); no change to the calculation.
+var CONCENTRATION_PROVIDERS = [
+  { id: 'nl-brp', tier: 1, granularity: 'crop_type_parcel', confidence: 'HIGH',
+    coverage: { type: 'country', countries: ['nl'] }, crops: '*',
+    label: 'BRP Gewaspercelen (PDOK/RVO)',
+    resolve: function (lat, lon, crop) { return getBRPConcentration(lat, lon, crop); } },  // live WFS, density-guarded
+  // ── Global slots — DEFINED but NOT wired (need Google Earth Engine / Copernicus credentials). ──
+  // Wiring = implement resolve() (reduceRegion same-class fraction within the radius) + a precompute path.
+  { id: 'worldcereal', tier: 2, granularity: 'crop_group_raster', confidence: 'MEDIUM',
+    coverage: { type: 'global' }, crops: ['wheat', 'oats', 'maize'],
+    label: 'ESA WorldCereal 10m (cereals/maize)',
+    resolve: function () { return Promise.resolve({ available: false, deferred: true,
+      reason: 'ESA WorldCereal (Tier-2 global crop-group, cereals/maize only) not wired — needs Earth Engine/Copernicus credentials' }); } },
+  { id: 'cropland-proxy', tier: 3, granularity: 'cropland_only', confidence: 'LOW',
+    coverage: { type: 'global' }, crops: '*',
+    label: 'ESA WorldCover / Dynamic World cropland density (proxy)',
+    resolve: function () { return Promise.resolve({ available: false, deferred: true,
+      reason: 'cropland-density proxy (Tier-3 global, cropland presence only — not crop-type) not wired — needs Copernicus/Earth Engine' }); } },
+];
+function providerApplies(p, country, crop) {
+  if (p.coverage.type === 'country' && (!country || p.coverage.countries.indexOf(country) < 0)) return false;
+  if (p.crops !== '*' && p.crops.indexOf(crop) < 0) return false;
+  return true;
+}
 
 // BRP `gewas` (Dutch, granular: several potato categories) -> engine crop key, matched by substring.
 // verified:false — extend as crops are added.
@@ -429,17 +457,50 @@ function countryOfCropRegion(cropRegion) {
   if (cropRegion === 'nl') return 'nl';
   return cropRegion.split('_')[0];   // e.g. uk_norfolk -> uk
 }
-// Sync resolver (offline / example + fail-loud stubs). The real NL source is live BRP (async, handler).
-function resolveConcentration(d, mkt) {
+// SYNC resolver for calculate()'s offline path (tests + when the handler hasn't pre-resolved). Uses the
+// hand-placed NL example for nl; otherwise an explicit tiered "unavailable" (no network here). The live
+// + global resolution (cache + providers) is async — see resolveConcentrationGlobal (handler).
+function resolveConcentrationSync(d, mkt) {
   var crop = d.crop || 'green_beans';
-  var cropRegion = resolveCropRegion(d, mkt);
-  var country = d.farm_country || countryOfCropRegion(cropRegion) || 'nl';
-  var src = PARCEL_SOURCES[country];
-  if (!src) return { available: false, country: country, reason: 'no parcel source for country "' + country + '" (LPIS coverage UNVERIFIED — stub not filled)' };
+  if (d.farm_lat == null || d.farm_lon == null) return { available: false, reason: 'no farm coordinates supplied' };
+  var country = d.farm_country || countryOfCropRegion(resolveCropRegion(d, mkt)) || null;
   if (country === 'nl') {
-    return concentrationFromParcels(d.farm_lat, d.farm_lon, crop, DRONTEN_EXAMPLE.parcels, DRONTEN_EXAMPLE.source_label, 'area (example)');
+    var r = concentrationFromParcels(d.farm_lat, d.farm_lon, crop, DRONTEN_EXAMPLE.parcels, DRONTEN_EXAMPLE.source_label, 'area (example)');
+    if (r.available) { r.provider = 'nl-example'; r.method = 'crop_type_parcel'; r.confidence = 'HIGH'; r.coverage = 'country'; r.country = 'nl'; }
+    return r;
   }
-  return { available: false, country: country, reason: 'parcel source "' + src.kind + '" for ' + country + ' not implemented' };
+  var applicable = CONCENTRATION_PROVIDERS.filter(function (p) { return providerApplies(p, country, crop); });
+  return { available: false, country: country,
+    reason: 'no offline parcel source for country "' + (country || 'unknown') + '" (LPIS coverage UNVERIFIED / stub not filled). Applicable provider tiers: ' +
+      (applicable.length ? applicable.map(function (p) { return p.id + ' (' + p.tier + '/' + p.confidence + ', not wired offline)'; }).join('; ') : 'none') + '.' };
+}
+
+// ASYNC resolution chain for ANY farm worldwide: cache first (global, instant — resolves the dense 15 km
+// case), then the best applicable LIVE provider by tier, else an explicit tiered "unavailable" reason.
+async function resolveConcentrationGlobal(d, mkt, supabaseUrl, supabaseKey) {
+  var crop = d.crop || 'green_beans';
+  if (d.farm_lat == null || d.farm_lon == null) return { available: false, reason: 'no farm coordinates supplied' };
+  var lat = Number(d.farm_lat), lon = Number(d.farm_lon);
+  var country = d.farm_country || countryOfCropRegion(resolveCropRegion(d, mkt)) || null;
+
+  var cached = await getConcentrationFromCache(lat, lon, crop, supabaseUrl, supabaseKey);   // global by coords
+  if (cached && cached.available) return cached;
+
+  var applicable = CONCENTRATION_PROVIDERS.filter(function (p) { return providerApplies(p, country, crop); });
+  var tried = [];
+  for (var i = 0; i < applicable.length; i++) {
+    var p = applicable[i];
+    var r = await p.resolve(lat, lon, crop);
+    if (r && r.available) {
+      r.provider = p.id; r.method = p.granularity; r.confidence = p.confidence; r.coverage = p.coverage.type; r.country = country;
+      return r;
+    }
+    tried.push(p.id + ' (' + p.tier + '/' + p.confidence + '): ' + ((r && r.reason) || 'unavailable'));
+  }
+  return { available: false, country: country, tiers_tried: tried,
+    reason: 'no usable crop-concentration source for ' + crop + (country ? ' in ' + country : ' (country unknown)') +
+      '. Tiers tried: ' + (tried.length ? tried.join('; ') : 'none applicable') +
+      '. Add a parcel source for this country, or wire a global provider (WorldCereal / cropland proxy).' };
 }
 
 // ── LIVE BRP SOURCE (PDOK/RVO) ───────────────────────────
@@ -525,7 +586,11 @@ async function getConcentrationFromCache(farmLat, farmLon, crop, supabaseUrl, su
       total_ha: best.total_ha != null ? Math.round(best.total_ha) : null,
       n_parcels: best.n_parcels != null ? best.n_parcels : null,
       source_label: (best.source_label || 'BRP precompute grid') + ' [cache ' + (Math.round(bestD * 10) / 10) + 'km]',
-      verified: false, basis: 'area (BRP precompute cache)',
+      provider: best.source_id || 'nl-brp',
+      method: best.granularity || 'crop_type_parcel',
+      confidence: best.confidence || 'HIGH',
+      coverage: 'country', country: best.country || null,
+      verified: false, basis: 'area (precompute cache)',
     };
   } catch (e) { return null; }
 }
@@ -598,7 +663,7 @@ function calculate(d, sc, mkt) {
   // 8. Crop concentration (todo2) — enrichment; activates ONLY when farm coords + a parcel source
   //    are present. mkt.concentration (live BRP, resolved in the handler) wins; else the sync
   //    example/stub resolver. Unavailable => omitted from totals (never silently zeroed).
-  var cropConc = (mkt && mkt.concentration) || ((d.farm_lat != null && d.farm_lon != null) ? resolveConcentration(d, mkt) : null);
+  var cropConc = (mkt && mkt.concentration) || ((d.farm_lat != null && d.farm_lon != null) ? resolveConcentrationSync(d, mkt) : null);
   var cropconc_current = 0, cropconc_regen = 0;
   if (cropConc && cropConc.available) {
     cropconc_current = Math.round(cv * cropConc.addon_pct);
@@ -740,6 +805,10 @@ function calculate(d, sc, mkt) {
       parcel_count_in_radius: cropConc.count != null ? cropConc.count : null,
       source_label: cropConc.source_label || null,
       basis: cropConc.basis || null,
+      provider: cropConc.provider || null,
+      method: cropConc.method || null,
+      confidence: cropConc.confidence || null,
+      coverage: cropConc.coverage || null,
       radius_confidence: (CROP_CONCENTRATION.radius[crop] && CROP_CONCENTRATION.radius[crop].confidence) || null,
       model: 'three-level percolation threshold — threshold positions MEDIUM confidence, add-on magnitudes LOW (expert-prior); agronomy knobs verified:false, validate with a plant pathologist',
       verified: false,
@@ -963,15 +1032,8 @@ module.exports = async function handler(req, res) {
     // Crop-concentration (todo2): only when farm coords are supplied. NL => live BRP (density-guarded);
     // other countries => fail-loud stub. Enrichment only — never blocks the report on failure.
     if (d.farm_lat != null && d.farm_lon != null) {
-      var concCountry = d.farm_country || countryOfCropRegion(resolveCropRegion(d, mkt)) || 'nl';
-      if (concCountry === 'nl') {
-        var fLat = Number(d.farm_lat), fLon = Number(d.farm_lon), fCrop = d.crop || 'green_beans';
-        // Offline precompute cache first (instant; resolves the 15 km case), else live WFS (density-guarded).
-        mkt.concentration = (await getConcentrationFromCache(fLat, fLon, fCrop, SB_URL, SB_KEY))
-                          || (await getBRPConcentration(fLat, fLon, fCrop));
-      } else {
-        mkt.concentration = resolveConcentration(d, mkt);   // fail-loud stub for uk/dk/pt
-      }
+      // Worldwide resolution: cache (global) -> best provider by tier -> explicit tiered unavailable.
+      mkt.concentration = await resolveConcentrationGlobal(d, mkt, SB_URL, SB_KEY);
     }
 
     // Step 1: JS calculation — instant (uses live market + regional overrides where available)
@@ -1141,7 +1203,10 @@ module.exports.cropCoefficients = cropCoefficients;
 module.exports.buildRegions = buildRegions;
 module.exports.buyerIsEU = buyerIsEU;
 module.exports.concentrationFromParcels = concentrationFromParcels;
-module.exports.resolveConcentration = resolveConcentration;
+module.exports.resolveConcentrationSync = resolveConcentrationSync;
+module.exports.resolveConcentrationGlobal = resolveConcentrationGlobal;
+module.exports.CONCENTRATION_PROVIDERS = CONCENTRATION_PROVIDERS;
+module.exports.providerApplies = providerApplies;
 module.exports.getBRPConcentration = getBRPConcentration;
 module.exports.CROP_CONCENTRATION = CROP_CONCENTRATION;
 module.exports.DRONTEN_EXAMPLE = DRONTEN_EXAMPLE;
