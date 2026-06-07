@@ -33,6 +33,12 @@ Regels:
 3. Alles landt als `pending_review`. De **apply-stap blijft ongewijzigd** (`apply_intelligence_updates()`): alleen HIGH-confidence + reeds geverifieerde bron gaat automatisch naar benchmark; outliers >3× worden geheld + e-mailalert.
 4. Scraping NIET op Vercel (serverless timeout) — langlopende jobs horen in n8n of een Supabase Edge Function.
 
-## Open gates voor Leo ⛔
-1. **Crawler live zetten op een bron** mag pas nadat die bron in `intelligence_sources` staat mét expliciete licentie. Twijfel = `scraping_allowed=false`. Bij twijfel over legaliteit: **stop en vraag Leo**. De GROENE bronnen zijn vrijgegeven; ORANJE (AHDB/SEGES/COTHN-GPP) wachten op jouw ToS-akkoord.
-2. **n8n-verificatie:** de workflow *"Orbag Intelligence Crawler"* (`KLNN5WeBC8ZE4GUI`, actief) is **niet MCP-toegankelijk** (`availableInMCP:false`) — ik kon de nodes niet inlezen om te bevestigen dat hij de RPC gebruikt i.p.v. een directe POST. Zet MCP-toegang aan op de workflow-kaart, dan verifieer/repareer ik de POST→RPC-stap en wijs ik hem naar `crawler_source_queue`.
+## Status n8n-workflow (KLNN5WeBC8ZE4GUI)
+- ✅ **POST→RPC afgerond (2026-06-07).** De node "Supabase opslaan" deed nog een directe POST naar `/rest/v1/intelligence_updates` (het werkorder-vinkje klopte niet). Nu: `POST …/rpc/upsert_intelligence_signal` met de juiste `p_*`-parameters + `p_generated_by:"n8n-crawler"`. "Splitsen voor Supabase" stuurt `sample_headlines`/`data_sources` als echte arrays (jsonb i.p.v. stringified). "Digest samenstellen" leest nu uit de split-node (de RPC geeft alleen `{id, action}` terug). RPC-mapping end-to-end geverifieerd via SQL.
+- ✅ **Benchmark-drift fix.** "Signalen analyseren" haalt `current_value` nu **live** uit `intelligence_benchmarks` (i.p.v. een bevroren hardcoded snapshot), defensief: élke fout valt terug op de snapshot, dus de dagrun kan er nooit op breken. `data_sources` vermeldt `intelligence_benchmarks (live)` wanneer gebruikt.
+- ✅ **Live bronnen geregistreerd.** GDELT + World Bank staan nu in `intelligence_sources` (groen, toegestaan) — élke bron die de crawler echt aanroept is legaliteit-getrackt.
+
+## Open gates / follow-ups ⛔
+1. **Crawler live zetten op een NIEUWE bron** mag pas nadat die in `intelligence_sources` staat mét expliciete licentie. Twijfel = `scraping_allowed=false` / vraag Leo. GROEN is vrij; ORANJE (AHDB/SEGES/COTHN-GPP) wacht op jouw ToS-akkoord.
+2. **Credential-hardening (handmatige stap):** de anon-key staat hardcoded in de node-headers. De n8n-MCP kan **geen credential aanmaken** (alleen koppelen). Maak in n8n één *Header Auth*-credential (headernaam `apikey`, waarde = anon-key); geef mij de credential-ID of zeg dat 'ie klaarstaat, dan koppel ik 'm aan "Supabase opslaan" en strip ik de hardcoded headers. (Publieke anon-key, dus geen lek — wel netter.)
+3. **Volledige bron-uitbreiding:** de crawler draait nog op GDELT + World Bank + de 5 legacy buckets. Hem laten lezen uit `crawler_source_queue` en per groene bron (Eurostat/FAOSTAT/CBS…) een extractor toevoegen is incrementeel werk per bron — losse iteratie.
