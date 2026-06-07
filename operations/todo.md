@@ -135,3 +135,10 @@ You may commit and deploy yourself when the acceptance checks pass.
 After deploy, output for `nl` and `uk` (NL buyer) the key figures
 (net value, risk reduction, justified farm gate price) so the numbers can be
 sanity-checked, plus a one-line note on anything held or skipped.
+
+---
+
+## Follow-on work (separate runs)
+- **Crop-concentration risk layer** — built and deployed as a worldwide, tiered
+  provider infrastructure (NL BRP / EU CLMS / global WorldCover). Its status and
+  open follow-ups live in `todo2-gewasconcentratie.md` (§H status, §I open points).
