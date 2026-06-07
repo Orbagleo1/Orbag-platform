@@ -2,7 +2,7 @@
 
 _Living progress doc. Connected to the claude.ai Orbag Project via the GitHub connector so "where we are" is always visible there._
 
-**Last updated:** 2026-06-06 (DB-backed + self-bootstrapping regions, verified live on Poland; least-privilege write layer fixes silent report-saves)
+**Last updated:** 2026-06-07 (buyer-location as a request field + offline engine regression fixtures + "Adding a new region" docs; deployed and verified live on orbag.online)
 
 Legend: ✅ done & verified · 🟡 in progress · ⬜ planned / backlog
 
@@ -39,6 +39,8 @@ JS engine computes every number; Haiku only writes the narrative (two-call desig
 - ✅ **Regional crop-data layer** — KWIN relabelled **NL-only quality table** (tare/defect/nitrate/dm); `REGIONAL_CROP_DATA` overrides yield/price/variable-cost per production region. `cropCoefficients()` merges them, per-field null-safe.
 - ✅ **UK/Norfolk source** added (AHDB Farmbench / Grain Market Daily) + a two-click **Bolwick demo preset**; benchmark source label surfaced in the report KPIs and narrative.
 - ✅ **Buyer-vs-farm separation** — production data is tied to where the crop is grown; logistics + customs are a function of the buyer (`customsCost()` gates import duty by EU-membership vs the buyer), so UK→NL pays the GB→EU charge while UK→UK would not.
+- ✅ **Buyer location is a request field** (`buyerLocation` in `analyse.html`, default NL) — `customsCost()` is buyer-aware so UK→NL pays the GB→EU duty (€45/t) while UK→UK pays none. Back-compat: missing/unknown ⇒ EU buyer, so existing submissions are byte-identical. Live-verified end-to-end on orbag.online.
+- ✅ **Engine regression fixtures** (`tests/engine.test.js`, run `node tests/engine.test.js`) — offline, no network; lock the computed nl / uk→nl / uk→uk numbers so a future change can't silently shift an existing farm's figures. Run before any engine change.
 
 ## 4. International & self-bootstrapping regions
 Adding a country is a DB row (or an auto-bootstrap), not a code deploy.
