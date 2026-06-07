@@ -979,7 +979,7 @@ function buildNarrativePrompt(d, calc, liveContext) {
     + (liveContext || '') + '\n'
     + 'Buyer context: ' + (d.concerns || 'none') + '\n\n'
     + 'Write concise, CFO-level analysis. Return JSON:\n'
-    + '{"verdict_reason":"one sentence citing net value",'
+    + '{"verdict_reason":"ONE sentence framed as cost-of-inaction: it MUST BEGIN with what standing still costs per year — open with the current total risk exposure ' + f(c.current_total) + '/yr as the price of doing nothing — then state the ' + f(c.net_value) + '/yr net value of acting. Example shape: \\"Doing nothing exposes you to ' + f(c.current_total) + '/yr in supply risk; acting captures ' + f(c.net_value) + '/yr net.\\"",'
     + '"supply_analysis":"2-3 sentences on regional supply capacity, farm availability, seasonality fit",'
     + '"pricing_analysis":"2-3 sentences: name the production benchmark source shown above, give the conventional vs regen estimate, and state whether premium tolerance is sufficient",'
     + '"processing_insight":"2-3 sentences on tare/DM/defect advantage for ' + c.processing.sector_label + ' using ' + c.processing.delivery_spec + '. State net cost per unit finished product.",'
@@ -1083,10 +1083,39 @@ module.exports = async function handler(req, res) {
     try { nar = JSON.parse(jm[0]); }
     catch(e) { return res.status(500).json({error:'Could not parse response. Please try again.'}); }
 
+    // Justified farm-gate price — computed once here so it is BOTH in the report JSON (CFO view)
+    // and reused by the buyer_bc save below. price*(1+premium) + tare + DM + defect saving per tonne.
+    var justifiable_farm_price = Math.round(
+      (Number(d.currentPrice) || 300) * (1 + (Number(d.premium) || 15) / 100) +
+      calc.processing.tare_saving_per_tonne +
+      calc.processing.dm_value_per_tonne +
+      calc.processing.defect_saving_per_tonne
+    );
+
     // Assemble final report
     var report = {
       verdict: calc.verdict,
       verdict_reason: nar.verdict_reason,
+      net_value: Math.round(calc.net_value),
+      justifiable_farm_price: justifiable_farm_price,
+      // CFO view — raw numeric fields (the rest of the report carries pre-formatted € strings).
+      // analyse.html renderReport() reads this block and formats with toLocaleString('nl-NL').
+      cfo: {
+        verdict: calc.verdict,
+        current_total: Math.round(calc.current_total),     // cost of inaction (red)
+        regen_total: Math.round(calc.regen_total),         // regen exposure (green)
+        risk_reduction: Math.round(calc.risk_reduction),
+        net_value: Math.round(calc.net_value),
+        prem_annual: Math.round(calc.prem_annual),
+        proc_annual: Math.round(calc.proc_annual),
+        logistics_annual_saving: calc.logistics.annual_saving,
+        carbon_buyer_share: calc.carbon.buyer_share_30pct,
+        justifiable_farm_price: justifiable_farm_price,
+        layers: calc.layers.map(function (l) {
+          return { layer: l.layer, basis: l.basis, current: Math.round(l.current),
+            regen: Math.round(l.regen), reduction: Math.round(l.reduction), saving: Math.round(l.reduction) };
+        }),
+      },
       kpis: {
         feasibility_score: calc.feasibility,
         price_range: '€' + calc.market.kwin_conv_price + '–' + calc.market.regen_price_est + '/t',
@@ -1172,12 +1201,6 @@ module.exports = async function handler(req, res) {
       });
       // Save to buyer_bcs for match engine
       if (d.user_id) {
-        var justifiable = Math.round(
-          Number(d.currentPrice) * (1 + Number(d.premium)/100) +
-          calc.processing.tare_saving_per_tonne +
-          calc.processing.dm_value_per_tonne +
-          calc.processing.defect_saving_per_tonne
-        );
         await fetch(process.env.SUPABASE_URL + '/rest/v1/rpc/save_buyer_bc', {
           method:'POST',
           headers:{'Content-Type':'application/json','apikey':process.env.SUPABASE_KEY,'Authorization':'Bearer '+process.env.SUPABASE_KEY},
@@ -1186,7 +1209,7 @@ module.exports = async function handler(req, res) {
             crop:d.crop, region:d.region, volume:Number(d.volume),
             current_price:Number(d.currentPrice), net_value:calc.net_value,
             risk_reduction:calc.risk_reduction, feasibility:calc.feasibility,
-            verdict:report.verdict, justifiable_farm_price:justifiable,
+            verdict:report.verdict, justifiable_farm_price:justifiable_farm_price,
           }}),
         });
       }

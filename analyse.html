@@ -303,10 +303,57 @@ body {
   .header { padding:16px 20px; }
 }
 
+/* ── CFO VIEW (cost-of-inaction) ── */
+.cfo-headline { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:22px; }
+.cfo-num { border-radius:var(--radius); padding:16px 18px; border:1px solid var(--line); }
+.cfo-num .cfo-num-label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; margin-bottom:6px; }
+.cfo-num .cfo-num-val { font-family:'Sigmar',cursive; font-size:26px; line-height:1.1; }
+.cfo-num .cfo-num-sub { font-size:11px; margin-top:5px; line-height:1.4; }
+.cfo-num.red   { background:var(--red-l); border-color:#F09595; }
+.cfo-num.red .cfo-num-label, .cfo-num.red .cfo-num-val { color:var(--red); }
+.cfo-num.red .cfo-num-sub { color:#791F1F; }
+.cfo-num.green { background:var(--mint); border-color:var(--leaf); }
+.cfo-num.green .cfo-num-label, .cfo-num.green .cfo-num-val { color:var(--forest); }
+.cfo-num.green .cfo-num-sub { color:#1a5011; }
+
+.cfo-table { width:100%; border-collapse:collapse; font-size:13px; }
+.cfo-table th { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--stone); text-align:left; padding:6px 8px; border-bottom:1px solid var(--line); }
+.cfo-table td { padding:8px; border-bottom:0.5px solid var(--line); vertical-align:top; }
+.cfo-table td.num { text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums; }
+.cfo-table td.red   { color:var(--red); font-weight:500; }
+.cfo-table td.green { color:#2d7a1e; font-weight:500; }
+.cfo-table tr.total td { border-top:1.5px solid var(--forest); border-bottom:none; font-weight:700; font-size:13px; padding-top:10px; }
+.cfo-table td.basis { color:var(--stone); font-size:11px; line-height:1.45; }
+
+.cfo-bridge { display:flex; flex-wrap:wrap; gap:8px; }
+.cfo-step { flex:1; min-width:120px; border-radius:8px; padding:12px 14px; border:1px solid var(--line); background:var(--paper); }
+.cfo-step .cfo-step-label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--stone); margin-bottom:5px; }
+.cfo-step .cfo-step-val { font-size:18px; font-weight:600; white-space:nowrap; }
+.cfo-step.plus  .cfo-step-val { color:#2d7a1e; }
+.cfo-step.minus .cfo-step-val { color:var(--red); }
+.cfo-step.result { background:var(--forest); border-color:var(--forest); min-width:150px; }
+.cfo-step.result .cfo-step-label { color:rgba(255,255,255,.6); }
+.cfo-step.result .cfo-step-val { color:#fff; font-size:20px; }
+
+.cfo-callout { background:var(--forest); color:#fff; border-radius:var(--radius); padding:18px 22px; margin-bottom:28px; }
+.cfo-callout .cfo-callout-label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--leaf); margin-bottom:6px; }
+.cfo-callout .cfo-callout-text { font-size:16px; font-weight:500; line-height:1.5; }
+
+@media(max-width:600px) {
+  .cfo-headline { grid-template-columns:1fr; }
+  .cfo-table td.basis, .cfo-table th:nth-child(2) { display:none; }
+}
+
 @media print {
   .header,.progress-bar,.api-setup,.report-footer,.btn-primary { display:none !important; }
   .report { display:block !important; }
-  body { background:white; }
+  body { background:white; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  /* Force the colour-coded CFO blocks + risk colours to render on paper / PDF */
+  .cfo-num, .cfo-step, .cfo-callout, .kpi-card, .verdict-bar, .cfo-table tr.total td,
+  .orbag-note, .scenario { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  /* Keep CFO sections from splitting across pages */
+  .section, .cfo-headline, .cfo-bridge, .cfo-callout { break-inside:avoid; page-break-inside:avoid; }
+  .cfo-table tr { break-inside:avoid; page-break-inside:avoid; }
 }
 </style>
 </head>
@@ -742,6 +789,8 @@ function renderReport(d, fd) {
   const k = d.kpis;
 
   let html = `
+    ${renderCfoHeadline(d)}
+
     <div class="verdict-bar ${vClasses[d.verdict]}">
       <span class="verdict-icon">${vIcons[d.verdict]}</span>
       <div>
@@ -749,6 +798,11 @@ function renderReport(d, fd) {
         <div class="verdict-text">${d.verdict_reason}</div>
       </div>
     </div>
+
+    ${renderCfoLayers(d.cfo)}
+    ${renderCfoBridge(d.cfo)}
+    ${renderJustifiedPrice(d.cfo)}
+    ${renderCfoCallout(d)}
 
     <div class="section">
       <div class="section-title">Key metrics</div>
@@ -796,9 +850,7 @@ function renderReport(d, fd) {
       <div class="prose"><p>${d.pricing_analysis}</p></div>
     </div>
 
-    ${d.processing_economics ? renderProcessingEconomics(d.processing_economics) : ''}
-
-    ${renderRiskTable(d.risk_analysis)}`;
+    ${d.processing_economics ? renderProcessingEconomics(d.processing_economics) : ''}`;
 
   const s = d.scenarios;
   html += `
@@ -950,6 +1002,128 @@ function renderReport(d, fd) {
   document.getElementById('reportBody').innerHTML = html;
 }
 
+
+// ── CFO VIEW renderers (cost-of-inaction) ──────
+// All euro figures use nl-NL formatting (€1.234.567). Each block degrades to '' when the API
+// response predates the cfo block, so an older payload never throws.
+const fmtNL = n => '€' + Math.round(Number(n) || 0).toLocaleString('nl-NL');
+const _yr = `<span style="font-size:13px;font-family:'Exo',sans-serif;font-weight:400">/yr</span>`;
+
+// 1. Headline — cost of inaction (red) · regen exposure (green) · net value (green)
+function renderCfoHeadline(d) {
+  const c = d.cfo; if (!c) return '';
+  return `
+    <div class="cfo-headline">
+      <div class="cfo-num red">
+        <div class="cfo-num-label">Cost of inaction</div>
+        <div class="cfo-num-val">${fmtNL(c.current_total)}${_yr}</div>
+        <div class="cfo-num-sub">Annual chain-risk exposure if nothing changes</div>
+      </div>
+      <div class="cfo-num green">
+        <div class="cfo-num-label">Regen exposure</div>
+        <div class="cfo-num-val">${fmtNL(c.regen_total)}${_yr}</div>
+        <div class="cfo-num-sub">Residual risk with near-shored regen supply</div>
+      </div>
+      <div class="cfo-num green">
+        <div class="cfo-num-label">Net value</div>
+        <div class="cfo-num-val">${fmtNL(c.net_value)}${_yr}</div>
+        <div class="cfo-num-sub">Net annual gain from switching</div>
+      </div>
+    </div>`;
+}
+
+// 3. The seven risk layers — layer | basis | current (red) | regen (green) | saving (green) + total
+function renderCfoLayers(c) {
+  if (!c || !c.layers || !c.layers.length) return '';
+  const rows = c.layers.map(l => `
+      <tr>
+        <td style="font-weight:500;color:var(--forest)">${l.layer}</td>
+        <td class="basis">${l.basis || ''}</td>
+        <td class="num red">${fmtNL(l.current)}</td>
+        <td class="num green">${fmtNL(l.regen)}</td>
+        <td class="num green">${fmtNL(l.saving)}</td>
+      </tr>`).join('');
+  return `
+    <div class="section">
+      <div class="section-title">The seven risk layers</div>
+      <table class="cfo-table">
+        <thead>
+          <tr>
+            <th>Layer</th><th>Basis</th>
+            <th style="text-align:right">Current</th>
+            <th style="text-align:right">Regen</th>
+            <th style="text-align:right">Saving</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows}
+          <tr class="total">
+            <td>Total</td><td></td>
+            <td class="num red">${fmtNL(c.current_total)}</td>
+            <td class="num green">${fmtNL(c.regen_total)}</td>
+            <td class="num green">${fmtNL(c.risk_reduction)}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>`;
+}
+
+// 4. Risk reduction → net value bridge. NB: net_value = risk_reduction + processing + logistics
+// − premium (carbon is a separate upside, NOT part of net value — shown below the bridge so the
+// arithmetic actually sums to the net value figure in the headline).
+function renderCfoBridge(c) {
+  if (!c) return '';
+  const steps = [
+    { label: 'Risk reduction',    val: c.risk_reduction,          cls: 'plus',  sign: '+' },
+    { label: 'Processing saving', val: c.proc_annual,             cls: 'plus',  sign: '+' },
+    { label: 'Logistics saving',  val: c.logistics_annual_saving, cls: 'plus',  sign: '+' },
+    { label: 'Regen premium',     val: c.prem_annual,             cls: 'minus', sign: '−' },
+  ].map(s => `
+      <div class="cfo-step ${s.cls}">
+        <div class="cfo-step-label">${s.sign} ${s.label}</div>
+        <div class="cfo-step-val">${s.sign}${fmtNL(s.val)}</div>
+      </div>`).join('');
+  const carbon = c.carbon_buyer_share ? `
+      <div style="margin-top:10px;padding:10px 14px;border-radius:8px;background:var(--amber-l);border:1px solid #FAC775;font-size:12px;color:#633806">
+        Additional upside, not counted in net value: carbon-credit buyer share <b>${fmtNL(c.carbon_buyer_share)}/yr</b>.
+      </div>` : '';
+  return `
+    <div class="section">
+      <div class="section-title">From risk reduction to net value</div>
+      <div class="cfo-bridge">
+        ${steps}
+        <div class="cfo-step result">
+          <div class="cfo-step-label">= Net value</div>
+          <div class="cfo-step-val">${fmtNL(c.net_value)}/yr</div>
+        </div>
+      </div>
+      ${carbon}
+    </div>`;
+}
+
+// 5. Justified farm-gate price (key number, placed after the bridge)
+function renderJustifiedPrice(c) {
+  if (!c || c.justifiable_farm_price == null) return '';
+  return `
+    <div class="section">
+      <div class="section-title">Justified farm-gate price</div>
+      <div class="kpi-card" style="background:var(--mint);border-color:var(--leaf)">
+        <div class="kpi-label">Price you can pay the farm and still break even</div>
+        <div class="kpi-val">${fmtNL(c.justifiable_farm_price)}<span style="font-size:14px;font-family:'Exo',sans-serif;font-weight:400">/t</span></div>
+        <div class="kpi-sub">Conventional price + regen premium + processing savings per tonne</div>
+      </div>
+    </div>`;
+}
+
+// 6. The CFO argument in one line — reuses the cost-of-inaction framed verdict_reason
+function renderCfoCallout(d) {
+  if (!d.cfo || !d.verdict_reason) return '';
+  return `
+    <div class="cfo-callout">
+      <div class="cfo-callout-label">The CFO argument in one line</div>
+      <div class="cfo-callout-text">${d.verdict_reason}</div>
+    </div>`;
+}
 
 // ── Logistics component labels (ordered) ──────
 const LOGI_LABELS = {

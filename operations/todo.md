@@ -142,3 +142,5 @@ sanity-checked, plus a one-line note on anything held or skipped.
 - **Crop-concentration risk layer** — built and deployed as a worldwide, tiered
   provider infrastructure (NL BRP / EU CLMS / global WorldCover). Its status and
   open follow-ups live in `todo2-gewasconcentratie.md` (§H status, §I open points).
+- **CFO-rapport view** — surface the engine's already-computed risk layers in the
+  buyer report (cost-of-inaction framing). Work order: `todo3-cfo-rapport-view.md`.
