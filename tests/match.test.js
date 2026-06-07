@@ -51,6 +51,16 @@ var JFP_GREEN_BEANS = 413;
   checkTrue('B net value below the NL-NL match', r.net_value_per_tonne < me.netValuePerTonne(JFP_GREEN_BEANS, farmerNL, buyerNL).net_value_per_tonne);
 })();
 
+// ── Example C: Morocco farmer ⇄ NL buyer — duty must be the source-country rate (18, not 45) ──
+(function () {
+  var farmerMA = { lat: 31.8, lon: -7.1, country: 'ma' };
+  var r = me.netValuePerTonne(JFP_GREEN_BEANS, farmerMA, buyerNL);
+  check('C customs (MA->EU) = 18', r.logistics.customs_eur_t, 18);
+  // EU source into an EU buyer pays nothing; an EU source into a non-EU buyer also pays 0 (source duty).
+  check('NL->UK buyer customs = 0', me.customsPerTonne('nl', 'uk'), 0);
+  check('UK->NL buyer customs = 45', me.customsPerTonne('gb', 'nl'), 45);
+})();
+
 // ── Guard: missing coordinates fail soft (never a fake number) ───────────────
 (function () {
   var r = me.netValuePerTonne(JFP_GREEN_BEANS, { country: 'nl' }, buyerNL);

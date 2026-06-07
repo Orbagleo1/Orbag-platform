@@ -637,7 +637,8 @@ function calculate(d, sc, mkt) {
   var szm      = SEASON_MOD[d.seasonality] || SEASON_MOD.flexible;
   var vol      = parseFloat(d.volume) || 100;
   var price    = parseFloat(d.currentPrice) || 300;
-  var premium  = parseFloat(d.premium) / 100 || 0.15;
+  var pf       = parseFloat(d.premium);                 // guard MISSING, not 0 — a legit 0% premium must stay 0
+  var premium  = isNaN(pf) ? 0.15 : pf / 100;
   var suppCnt  = parseInt(d.supplierCount) || 1;
   var cv       = vol * price;
 
@@ -711,7 +712,7 @@ function calculate(d, sc, mkt) {
 
   // Carbon
   var ha_needed    = Math.round(vol / (k.yield_ha / 1000));
-  var carbon_total = Math.round(ha_needed * (CARBON_POTENTIAL[crop] || 40));
+  var carbon_total = Math.round(ha_needed * (CARBON_POTENTIAL[crop] || 8));
   var carbon_share = Math.round(carbon_total * 0.30);
 
   // ── Logistics calculation (extended: transport, fuel, CO2, load factor, peak,
@@ -1089,7 +1090,8 @@ module.exports = async function handler(req, res) {
     }
 
     var anthropicData = await anthropicRes.json();
-    var text = anthropicData.content.map(function(b){return b.type==='text'?b.text:'';}).join('');
+    var content = (anthropicData && anthropicData.content) || [];
+    var text = content.map(function(b){return b.type==='text'?b.text:'';}).join('');
     console.log('narrative stop_reason:', anthropicData.stop_reason, 'len:', text.length);
 
     text = text.replace(/```json\n?|```\n?/g,'').trim();
@@ -1103,7 +1105,7 @@ module.exports = async function handler(req, res) {
     // Justified farm-gate price — computed once here so it is BOTH in the report JSON (CFO view)
     // and reused by the buyer_bc save below. price*(1+premium) + tare + DM + defect saving per tonne.
     var justifiable_farm_price = Math.round(
-      (Number(d.currentPrice) || 300) * (1 + (Number(d.premium) || 15) / 100) +
+      (Number(d.currentPrice) || 300) * (1 + (isNaN(Number(d.premium)) ? 15 : Number(d.premium)) / 100) +
       calc.processing.tare_saving_per_tonne +
       calc.processing.dm_value_per_tonne +
       calc.processing.defect_saving_per_tonne
@@ -1195,8 +1197,8 @@ module.exports = async function handler(req, res) {
       pricing_analysis: nar.pricing_analysis,
       logistics_note: nar.logistics_note,
       nitrate_note: nar.nitrate_note,
-      scenarios: nar.scenarios,
-      next_steps: nar.next_steps,
+      scenarios: nar.scenarios || {optimistic:{},base:{},pessimistic:{}},
+      next_steps: nar.next_steps || [],
       orbag_note: nar.orbag_note,
     };
 

@@ -76,6 +76,13 @@ function circle(lat, lon, R, n) {
 
 // Server-side fraction of `cls` pixels within the circle around EACH point — ALL points in ONE
 // openEO call (aggregate_spatial accepts many geometries), so we don't hammer the rate limit.
+// ⚠ DENOMINATOR CAVEAT (validate when re-running with a live CDSE login): the `mask` (eq→1/0)
+// yields NULL for nodata pixels, and `mean` ignores nodata — so the fraction's denominator is the
+// VALID pixels in the circle, not all pixels. For a crop-TYPE raster (Tier-2 CLMS) that denominator
+// is the agricultural area, which is the INTENDED "same-crop share of farmland" — but for a
+// cropland-presence raster (Tier-3 WorldCover) or a circle straddling water/footprint edge it can
+// over-state the share. Confirm per provider against ground truth before widening coverage; couple
+// this check to the CDSE device-login (it can't be tested without it).
 async function classFractions(tok, points, cls) {
   var feats = points.map(function (p, i) {
     return { type: 'Feature', properties: { idx: i }, geometry: { type: 'Polygon', coordinates: [circle(p.lat, p.lon, RADIUS, 32)] } };

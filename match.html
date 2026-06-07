@@ -92,9 +92,17 @@ let currentProfile = null;
 function regionsOverlap(r1, r2) {
   if (!r1 || !r2) return true;
   if (r1 === 'no_preference' || r2 === 'no_preference') return true;
-  const noord = ['groningen','noord_groningen','friesland','drenthe','noord_nederland'];
-  if (noord.includes(r1) && noord.includes(r2)) return true;
-  return r1 === r2;
+  if (r1 === r2) return true;
+  // The buyer supply-region vocabulary (noord/west/oost_nederland) and the farmer province
+  // vocabulary (groningen, zeeland, flevoland, …) differ — bridge them by mapping both to a coarse
+  // cluster; a shared cluster counts as overlap. (Provinces with no buyer counterpart yet, e.g.
+  // brabant, only match themselves / 'Any region'.)
+  const CLUSTER = {
+    noord_nederland:'noord', groningen:'noord', noord_groningen:'noord', friesland:'noord', drenthe:'noord',
+    west_nederland:'west', zeeland:'west',
+    oost_nederland:'oost', flevoland:'oost',
+  };
+  return !!CLUSTER[r1] && CLUSTER[r1] === CLUSTER[r2];
 }
 
 async function init() {
@@ -165,14 +173,14 @@ async function loadBuyerMatches() {
       <div class="match-header">
         <div>
           <div class="match-crop">${cropLabel} · ${bc.volume}t/yr</div>
-          <div class="match-meta">${regionLabel} · ${bc.sector || '—'} · ${new Date(bc.created_at).toLocaleDateString('nl-NL',{day:'numeric',month:'short',year:'numeric'})}</div>
+          <div class="match-meta">${regionLabel} · ${bc.sector || '—'} · ${new Date(bc.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</div>
         </div>
         <div class="match-verdict ${verdictClass}">${verdictLabel}</div>
       </div>
       <div class="match-body">
         <div class="match-stats">
-          <div class="stat"><div class="stat-label">Net value</div><div class="stat-val">€${Math.round(bc.net_value||0).toLocaleString()}</div><div class="stat-sub">per year</div></div>
-          <div class="stat"><div class="stat-label">Risk reduction</div><div class="stat-val">€${Math.round(bc.risk_reduction||0).toLocaleString()}</div><div class="stat-sub">per year</div></div>
+          <div class="stat"><div class="stat-label">Net value</div><div class="stat-val">€${Math.round(bc.net_value||0).toLocaleString('en-GB')}</div><div class="stat-sub">per year</div></div>
+          <div class="stat"><div class="stat-label">Risk reduction</div><div class="stat-val">€${Math.round(bc.risk_reduction||0).toLocaleString('en-GB')}</div><div class="stat-sub">per year</div></div>
           <div class="stat"><div class="stat-label">Feasibility</div><div class="stat-val">${bc.feasibility||'—'}%</div><div class="stat-sub">supply confidence</div></div>
         </div>
         <div class="match-count-bar">
@@ -191,7 +199,7 @@ async function loadBuyerMatches() {
         <div class="key-number">
           <div>
             <div class="key-number-label">Justifiable farm gate price</div>
-            <div class="key-number-val">€${Math.round(bc.justifiable_farm_price).toLocaleString()}/t</div>
+            <div class="key-number-val">€${Math.round(bc.justifiable_farm_price).toLocaleString('en-GB')}/t</div>
             <div class="key-number-sub">what your chain economics can support</div>
           </div>
           <div class="key-number-note">This is the maximum farm gate price you can pay for regen ${cropLabel} while still improving your own margin. Consumer price unchanged.</div>
@@ -263,10 +271,10 @@ async function loadFarmerMatches() {
         <div class="key-number">
           <div>
             <div class="key-number-label">They can afford to pay you</div>
-            <div class="key-number-val">€${Math.round(bc.justifiable_farm_price).toLocaleString()}/t</div>
+            <div class="key-number-val">€${Math.round(bc.justifiable_farm_price).toLocaleString('en-GB')}/t</div>
             <div class="key-number-sub">farm gate price their chain economics support</div>
           </div>
-          <div class="key-number-note">This buyer's supply chain savings from regen quality justify paying €${Math.round(bc.justifiable_farm_price).toLocaleString()}/t — without raising consumer prices.</div>
+          <div class="key-number-note">This buyer's supply chain savings from regen quality justify paying €${Math.round(bc.justifiable_farm_price).toLocaleString('en-GB')}/t — without raising consumer prices.</div>
         </div>` : ''}
       </div>
     </div>`;

@@ -65,8 +65,10 @@ function geoFromIncome(income){
 async function latestCerealYield(iso3){
   var j = await wbJson('https://api.worldbank.org/v2/country/' + iso3 + '/indicator/AG.YLD.CREL.KG?format=json&date=2017:2024&per_page=20');
   if (!j || !j[1]) return null;
-  var v = j[1].filter(function(x){ return x.value != null; })[0];
-  return v ? Number(v.value) : null;  // kg/ha
+  // Don't rely on World Bank's default ordering — sort by year desc and take the latest non-null.
+  var v = j[1].filter(function(x){ return x.value != null; })
+              .sort(function(a, b){ return Number(b.date) - Number(a.date); })[0];
+  return v ? { value: Number(v.value), year: v.date } : null;  // kg/ha + year used
 }
 
 // Persist via the SECURITY DEFINER RPC bootstrap_region — SUPABASE_KEY is the ANON key, which RLS
@@ -112,7 +114,10 @@ module.exports = async function handler(req, res){
     var isEu = !!EU27[iso3];
 
     // 2. Derive coefficients.
-    var distance = (lat && lng) ? Math.round(haversineKm(lat, lng, BUYER_LAT, BUYER_LNG)) : 1500;
+    // Use presence (not truthiness) so a country on the equator/prime meridian (lat or lng === 0)
+    // gets its real great-circle distance, not the silent 1500 km fallback.
+    var hasCoords = Number.isFinite(lat) && Number.isFinite(lng);
+    var distance = hasCoords ? Math.round(haversineKm(lat, lng, BUYER_LAT, BUYER_LNG)) : 1500;
     var isSea = !isEu;                                   // non-EU defaults to a sea/short-sea + customs leg
     var geo = geoFromIncome(c.incomeLevel && c.incomeLevel.value);
     var transitDays = Math.max(1, Math.round(distance / (isSea ? 280 : 350)));
@@ -120,7 +125,8 @@ module.exports = async function handler(req, res){
     var costPerT = Math.round(6 + distance * 0.017 + (isSea ? 12 : 0));
     var importCost = isEu ? 0 : 30;                     // provisional customs default for a non-EU -> EU buyer
     var weatherConv = 0.20;                             // provisional default; sharpened by the weather detector
-    var src = 'Auto-bootstrap: World Bank metadata + geo-derived (UNVERIFIED, provisional)';
+    var src = 'Auto-bootstrap: World Bank metadata + geo-derived (UNVERIFIED, provisional)' +
+              (hasCoords ? '' : ' [no WB coordinates — distance is a 1500 km proxy]');
 
     var regionRow = {
       region_key: regionKey,
@@ -144,14 +150,14 @@ module.exports = async function handler(req, res){
     //    Price + variable cost are not machine-available -> left null so the engine falls back to NL,
     //    and flagged for the deep-research / Hanze sharpening pass.
     var cropRows = [];
-    var cerealKg = await latestCerealYield(iso3);       // kg/ha
-    if (cerealKg) {
-      var yieldT = Math.round((cerealKg/1000) * 10) / 10;
+    var cereal = await latestCerealYield(iso3);         // { value: kg/ha, year } or null
+    if (cereal && cereal.value) {
+      var yieldT = Math.round((cereal.value/1000) * 10) / 10;
       ['wheat','oats'].forEach(function(crop){
         cropRows.push({
           crop_region: regionKey, crop: crop,
           yield_t_ha: yieldT, price_conv: null, variable_cost_ha: null,
-          source_label: 'Auto: World Bank cereal yield ' + Math.round(cerealKg) + ' kg/ha (proxy, provisional)',
+          source_label: 'Auto: World Bank cereal yield ' + Math.round(cereal.value) + ' kg/ha (' + cereal.year + ', proxy, provisional)',
           status: 'provisional',
         });
       });

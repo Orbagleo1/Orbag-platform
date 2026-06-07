@@ -82,5 +82,16 @@ function run(overrides) {
   checkTrue('buyerIsEU(unknown) EU',  eng.buyerIsEU('atlantis') === true);
 })();
 
+// ── premium edge cases: 0% must stay 0 (regression for the `/100 || 0.15` bug) ──
+(function () {
+  var zero    = run({ crop: 'green_beans', volume: 500, currentPrice: 300, currentSource: 'netherlands', premium: '0' });
+  var fifteen = run({ crop: 'green_beans', volume: 500, currentPrice: 300, currentSource: 'netherlands', premium: 15 });
+  var missing = run({ crop: 'green_beans', volume: 500, currentPrice: 300, currentSource: 'netherlands' }); // base has premium:15
+  check('premium 0% -> prem_annual 0', zero.prem_annual, 0);
+  checkTrue('premium 0% != premium 15%', zero.prem_annual !== fifteen.prem_annual);
+  checkTrue('premium 0% raises net_value vs 15%', zero.net_value > fifteen.net_value);
+  check('premium missing -> 15% default', missing.prem_annual, fifteen.prem_annual);
+})();
+
 console.log('\n' + (fails === 0 ? 'ALL PASS' : fails + ' FAILED'));
 process.exit(fails === 0 ? 0 : 1);

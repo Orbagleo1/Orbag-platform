@@ -46,7 +46,12 @@ async function downloadParcels(bbox) {
   for (;;) {
     var url = BRP + '&request=GetFeature&outputFormat=application/json&srsName=EPSG:4326&count=' + page +
               '&startIndex=' + start + '&bbox=' + encodeURIComponent(bbox);
-    var gj = await (await fetch(url)).json();
+    // Fail loud on a non-OK page: PDOK can return a 5xx or a 200 WFS XML exception report, and a
+    // blind .json() would throw an opaque "Unexpected token" mid-paging AFTER earlier pages were
+    // already collected — masking the real upstream error. Stop the run with the actual status.
+    var res = await fetch(url);
+    if (!res.ok) throw new Error('PDOK BRP ' + res.status + ' at startIndex ' + start + ': ' + (await res.text()).slice(0, 200));
+    var gj = await res.json();
     var feats = gj.features || [];
     var raw = feats.length;
     for (var k = 0; k < feats.length; k++) {

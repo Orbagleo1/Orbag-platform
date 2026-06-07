@@ -1004,9 +1004,10 @@ function renderReport(d, fd) {
 
 
 // ── CFO VIEW renderers (cost-of-inaction) ──────
-// All euro figures use nl-NL formatting (€1.234.567). Each block degrades to '' when the API
+// All euro figures use en-GB formatting (€1,234,567) — consistent with the rest of the UI and the
+// CLAUDE.md locale rule. Each block degrades to '' when the API
 // response predates the cfo block, so an older payload never throws.
-const fmtNL = n => '€' + Math.round(Number(n) || 0).toLocaleString('nl-NL');
+const fmtNL = n => '€' + Math.round(Number(n) || 0).toLocaleString('en-GB');
 const _yr = `<span style="font-size:13px;font-family:'Exo',sans-serif;font-weight:400">/yr</span>`;
 
 // 1. Headline — cost of inaction (red) · regen exposure (green) · net value (green)

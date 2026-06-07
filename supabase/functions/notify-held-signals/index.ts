@@ -17,6 +17,15 @@ const dbHeaders = {
   'Content-Type': 'application/json',
 };
 
+// HTML-escape any value before putting it in the alert email. held_details fields (field_path,
+// reason, country…) originate from crawled external sources, so a stray '<'/'>'/'"'/'&' must not
+// break the markup or inject HTML into the inbox.
+function esc(v: unknown): string {
+  return String(v ?? '')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
 function json(obj: unknown, status = 200) {
   return new Response(JSON.stringify(obj, null, 2), {
     status,
@@ -50,11 +59,11 @@ Deno.serve(async (_req: Request) => {
   const details: any[] = Array.isArray(run.held_details) ? run.held_details : [];
   const rowsHtml = details.map((d) => `
     <tr>
-      <td style="padding:6px 10px;border-bottom:1px solid #eee">${d.country ?? ''}</td>
-      <td style="padding:6px 10px;border-bottom:1px solid #eee">${d.signal_type ?? ''}</td>
-      <td style="padding:6px 10px;border-bottom:1px solid #eee"><code>${d.field_path ?? ''}</code></td>
-      <td style="padding:6px 10px;border-bottom:1px solid #eee">${d.current_value ?? ''} &rarr; <b>${d.suggested_value ?? ''}</b> (${d.delta_pct ?? ''}%)</td>
-      <td style="padding:6px 10px;border-bottom:1px solid #eee">${d.reason ?? ''}</td>
+      <td style="padding:6px 10px;border-bottom:1px solid #eee">${esc(d.country)}</td>
+      <td style="padding:6px 10px;border-bottom:1px solid #eee">${esc(d.signal_type)}</td>
+      <td style="padding:6px 10px;border-bottom:1px solid #eee"><code>${esc(d.field_path)}</code></td>
+      <td style="padding:6px 10px;border-bottom:1px solid #eee">${esc(d.current_value)} &rarr; <b>${esc(d.suggested_value)}</b> (${esc(d.delta_pct)}%)</td>
+      <td style="padding:6px 10px;border-bottom:1px solid #eee">${esc(d.reason)}</td>
     </tr>`).join('');
 
   const plural = held > 1 ? 's' : '';

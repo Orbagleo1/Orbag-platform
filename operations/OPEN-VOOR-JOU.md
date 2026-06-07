@@ -16,7 +16,9 @@ _Laatst bijgewerkt: 2026-06-07. Bron: STATUS.md backlog + todo2 §I + todo3 + to
   **Wat ik nodig heb:** log in op CDSE openEO en zet het token op de afgesproken plek
   (`<tmp>/cdse_token.json`), of doe de device-flow samen met mij. Dan draai ik de one-call
   precompute over de regio's die jij wilt. _Productie zelf heeft dit NIET nodig (leest alleen cache)._
-  → todo2 §I.1 / §I.2
+  Bug-audit-aanhangsel: meteen de **openEO-concentratie-noemer** valideren — de pixelfractie deelt nu
+  door geldige (non-nodata) pixels; klopt voor crop-type (Tier-2) maar kan bij de cropland-proxy/rand
+  overschatten. Te checken zodra de login er is (kan niet zonder). → todo2 §I.1 / §I.2
 
 - [ ] **n8n Header Auth-credential maken (crawler-hardening).** De anon-key staat hardcoded in de
   node-headers van de "Orbag Intelligence Crawler". De n8n-MCP kan **geen credential aanmaken**
@@ -74,6 +76,13 @@ _Laatst bijgewerkt: 2026-06-07. Bron: STATUS.md backlog + todo2 §I + todo3 + to
   seizoen, kwaliteit, certificering, contract, concentratie, groei, geopolitieke complementariteit)
   is een **businessbeslissing**. **Wat ik nodig heb:** geef de gewichten/prioriteiten (of zeg "stel
   een voorzet voor"), dan regel ik de ranking in `match.html` in. → WORKORDER BLOK 2
+- [ ] **Match-engine zichtbaarheid (RLS) — privacy-beslissing.** ⚠ Bug-audit-vondst: de match-engine
+  is voor iederéén leeg. `buyer_bcs` én `profiles` hebben een SELECT-policy `auth.uid() = id/user_id`,
+  dus een koper kan geen boer-profielen lezen en een boer geen buyer-cases — cross-user matchen is
+  RLS-technisch onmogelijk. Repareren = data van gebruikers blootstellen aan andere ingelogde
+  gebruikers. **Wat ik nodig heb:** jouw beslissing wélke velden een koper van een boer mag zien (en
+  omgekeerd) voor matching — dan schrijf ik een gerichte RLS-policy (bv. alleen match-relevante
+  kolommen, of via een SECURITY DEFINER view). Tot dan blijft de match-pagina leeg. → bug-audit
 - [ ] **ToS-akkoord oranje databronnen.** AHDB / SEGES / COTHN-GPP staan als ORANJE in
   `intelligence_sources` (`scraping_allowed=false`). De crawler mag ze pas automatisch raadplegen na
   een licentie/ToS-check. **Wat ik nodig heb:** jouw go (of de bevestigde reuse-voorwaarden) per

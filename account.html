@@ -255,15 +255,32 @@ function selectRole(role) {
   document.getElementById('roleKoper').classList.toggle('selected', role === 'buyer');
 }
 
+// If the signup happened under email-confirmation (no session at signup time), the profile upsert was
+// blocked by RLS and the fields were stashed. Create the profile now that we have an authenticated
+// session. Idempotent and safe to call on every login. Returns the role if it created one, else null.
+async function ensureProfile(userId) {
+  let pending = null;
+  try { pending = JSON.parse(localStorage.getItem('orbag_pending_profile') || 'null'); } catch (e) {}
+  if (pending && pending.id === userId) {
+    await sb.from('profiles').upsert(pending);
+    if (pending.country) bootstrapRegion(pending.country);
+    try { localStorage.removeItem('orbag_pending_profile'); } catch (e) {}
+    return pending.role || null;
+  }
+  return null;
+}
+
 async function login() {
   const email = document.getElementById('loginEmail').value;
   const password = document.getElementById('loginPassword').value;
   const { data, error } = await sb.auth.signInWithPassword({ email, password });
   if (error) return showMsg('authMsg', error.message, 'error');
 
-  // Haal rol op en redirect correct
-  const { data: profile } = await sb.from('profiles').select('role').eq('id', data.user.id).single();
-  const role = profile?.role || 'farmer';
+  // Finish any deferred profile creation, then resolve the role. maybeSingle() returns {data:null}
+  // (not an error) when no profile row exists, so a missing profile never throws.
+  const pendingRole = await ensureProfile(data.user.id);
+  const { data: profile } = await sb.from('profiles').select('role').eq('id', data.user.id).maybeSingle();
+  const role = (profile && profile.role) || pendingRole || 'farmer';
   redirectAfterLogin(role);
 }
 
@@ -278,8 +295,19 @@ async function register() {
 
   const { data, error } = await sb.auth.signUp({ email, password });
   if (error) return showMsg('authMsg', error.message, 'error');
+  if (!data || !data.user) return showMsg('authMsg', 'Signup failed — please try again.', 'error');
 
-  await sb.from('profiles').upsert({ id: data.user.id, role: currentRole, name, company, country });
+  const profileFields = { id: data.user.id, role: currentRole, name, company, country };
+  const { error: pErr } = await sb.from('profiles').upsert(profileFields);
+
+  // With email confirmation ON, signUp returns a user but NO session — the upsert above is blocked by
+  // RLS and a redirect would land on a session-less page. Stash the fields (ensureProfile() finishes
+  // them on first login) and ask the user to confirm, instead of looping.
+  if (!data.session) {
+    try { localStorage.setItem('orbag_pending_profile', JSON.stringify(profileFields)); } catch (e) {}
+    return showMsg('authMsg', 'Account created — check your email to confirm, then log in.', 'success');
+  }
+  if (pErr) return showMsg('authMsg', 'Account created, but saving your profile failed: ' + pErr.message, 'error');
 
   // Auto-bootstrap provisional benchmarks for this country if the platform has nothing for it yet.
   if (country) bootstrapRegion(country);   // fire-and-forget — never blocks signup

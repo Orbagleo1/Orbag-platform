@@ -24,9 +24,12 @@ var ROAD = {
   cold_chain_eur_per_100km_t:1.2,    // perishable cold-chain surcharge per tonne per 100 km
 };
 
-// Cross-border import duty per tonne when farmer and buyer sit in DIFFERENT customs areas. Mirrors
-// generate.js LOGISTICS.import_cost.uk (GB→EU post-Brexit BTOM/Common User Charge + SPS, EUR/t).
-var CROSS_BORDER_DUTY_EUR_T = 45;
+// Per-SOURCE-country import duty (EUR/t), mirroring generate.js LOGISTICS.import_cost (GB→EU 45 via
+// BTOM/Common User Charge + SPS; the morocco_egypt bucket = 18; mixed_global = 22). Charged only when
+// the farm and buyer sit in different customs areas, keyed by the source (farm) country — an EU source
+// pays 0 even into a non-EU buyer, exactly like the buyer engine charges the source's import_cost.
+var IMPORT_DUTY_EUR_T = { gb: 45, ma: 18, eg: 18, tn: 18 };
+var DEFAULT_NON_EU_DUTY_EUR_T = 22;   // unknown non-EU source (mixed_global proxy)
 
 // EU customs union membership by country code (mirrors generate.js IS_EU, expanded to the BLOK 3
 // country set). Used ONLY to decide same-area vs cross-border — never to borrow a benchmark.
@@ -48,14 +51,17 @@ function haversineKm(lat1, lon1, lat2, lon2) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-// Cross-border duty per tonne: 0 when both sit in the same customs area, else the duty. Unknown
-// country defaults to EU (back-compat with generate.js customsCost). Never borrows anything.
+// Cross-border duty per tonne: 0 when both sit in the same customs area, else the SOURCE country's
+// import duty. Unknown country defaults to EU (back-compat with generate.js customsCost). Never borrows.
 function customsPerTonne(farmerCountry, buyerArea) {
-  var fEu = farmerCountry == null ? true : (EU_CUSTOMS[String(farmerCountry).toLowerCase()] !== false);
+  var fc = String(farmerCountry == null ? 'nl' : farmerCountry).toLowerCase();
+  var fEu = EU_CUSTOMS[fc] !== false;                  // unknown -> treat as EU (back-compat)
   // buyerArea is a customs area label (nl/eu => EU; uk => non-EU) OR a country code.
   var b = String(buyerArea == null ? 'nl' : buyerArea).toLowerCase();
   var bEu = (b === 'eu' || b === 'nl') ? true : (EU_CUSTOMS[b] !== false);
-  return fEu === bEu ? 0 : CROSS_BORDER_DUTY_EUR_T;
+  if (fEu === bEu) return 0;                           // same customs area -> no border cost
+  // Cross-border: charge the SOURCE country's import duty (EU source -> 0, mirrors generate.js).
+  return fEu ? 0 : (IMPORT_DUTY_EUR_T[fc] != null ? IMPORT_DUTY_EUR_T[fc] : DEFAULT_NON_EU_DUTY_EUR_T);
 }
 
 // Logistics cost (EUR/tonne) for the road route from a farm to a buyer.
@@ -104,7 +110,7 @@ function netValuePerTonne(justifiedFarmGatePrice, farmer, buyer) {
 }
 
 module.exports = {
-  ROAD: ROAD, EU_CUSTOMS: EU_CUSTOMS, CROSS_BORDER_DUTY_EUR_T: CROSS_BORDER_DUTY_EUR_T,
+  ROAD: ROAD, EU_CUSTOMS: EU_CUSTOMS, IMPORT_DUTY_EUR_T: IMPORT_DUTY_EUR_T,
   haversineKm: haversineKm, customsPerTonne: customsPerTonne,
   logisticsCostPerTonne: logisticsCostPerTonne, netValuePerTonne: netValuePerTonne,
 };

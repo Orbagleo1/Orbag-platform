@@ -74,7 +74,8 @@ function calculateFarmer(d) {
   var totalHa  = Number(d.totalHa) || 85;
   var current  = Number(d.currentIncome) || 800;          // €/ha baseline (the farmer's own figure)
   var paybackTarget = parseLeadingInt(d.payback, 5);
-  var incomeDropTol = d.incomeDrop != null ? Number(d.incomeDrop) : 100;   // €/ha tolerance
+  var idt = Number(d.incomeDrop);                                          // €/ha tolerance
+  var incomeDropTol = (d.incomeDrop != null && d.incomeDrop !== '' && Number.isFinite(idt)) ? idt : 100;
   var cow = M.cost_of_waiting;
 
   // Per-crop steady-state regen uplift (€/ha, full ramp, steady yield, no capex) — transparency block.
@@ -196,7 +197,9 @@ async function getLiveBuyerContext(crops, supabaseUrl, supabaseKey) {
     var cropList = (crops || []).join(' ').toLowerCase();
     var relevant = rows.filter(function (r) {
       var rc = (r.crop || '').toLowerCase();
-      return cropList.includes(rc) || rc.includes('tarwe') || rc.includes('aardappel');
+      // require a real crop that the farmer actually grows — '' must NOT match, and we must not
+      // unconditionally pull in every wheat/potato buyer regardless of the farmer's crop mix.
+      return rc && cropList.includes(rc);
     }).slice(0, 3);
     if (!relevant.length) return '';
     var lines = relevant.map(function (r) {
@@ -280,7 +283,7 @@ module.exports = async function handler(req, res) {
     }
 
     var anthropicData = await anthropicRes.json();
-    var text = anthropicData.content.map(function (b) { return b.type === 'text' ? b.text : ''; }).join('');
+    var text = ((anthropicData && anthropicData.content) || []).map(function (b) { return b.type === 'text' ? b.text : ''; }).join('');
     console.log('farmer narrative stop_reason:', anthropicData.stop_reason, 'length:', text.length);
 
     text = text.replace(/```json\n?|```\n?/g, '').trim();
@@ -313,8 +316,8 @@ module.exports = async function handler(req, res) {
       },
       income_analysis: nar.income_analysis,
       input_analysis: nar.input_analysis,
-      crop_recommendations: nar.crop_recommendations,
-      next_steps: nar.next_steps,
+      crop_recommendations: nar.crop_recommendations || [],
+      next_steps: nar.next_steps || [],
       orbag_note: nar.orbag_note,
     };
 
