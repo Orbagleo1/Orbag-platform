@@ -495,6 +495,41 @@ async function getBRPConcentration(farmLat, farmLon, crop, cap) {
   } catch (e) { return { available: false, reason: 'BRP fetch error: ' + e.message }; }
 }
 
+// Read the OFFLINE precompute cache (crop_concentration_grid) for the nearest grid cell to the farm.
+// This is what lets the 15 km case resolve instantly (the live WFS path defers at that density).
+// Returns a computed-style result, or null on miss/error so the caller falls back to live WFS.
+async function getConcentrationFromCache(farmLat, farmLon, crop, supabaseUrl, supabaseKey) {
+  if (!supabaseUrl || !supabaseKey || farmLat == null || farmLon == null) return null;
+  if (cropRadiusKm(crop) == null) return null;
+  try {
+    var dLat = 0.06, dLon = 0.09;   // ~±6 km candidate window
+    var q = supabaseUrl + '/rest/v1/crop_concentration_grid?select=*'
+      + '&crop=eq.' + encodeURIComponent(crop)
+      + '&grid_lat=gte.' + (farmLat - dLat) + '&grid_lat=lte.' + (farmLat + dLat)
+      + '&grid_lon=gte.' + (farmLon - dLon) + '&grid_lon=lte.' + (farmLon + dLon);
+    var res = await fetch(q, { headers: { apikey: supabaseKey, Authorization: 'Bearer ' + supabaseKey } });
+    if (!res.ok) return null;
+    var rows = await res.json();
+    if (!rows || !rows.length) return null;
+    var best = null, bestD = Infinity;
+    rows.forEach(function (r) {
+      var dkm = haversineKm(farmLat, farmLon, Number(r.grid_lat), Number(r.grid_lon));
+      var tol = (Number(r.cell_km) || 5) / 2 + 1.5;   // within half a cell + tolerance
+      if (dkm <= tol && dkm < bestD) { bestD = dkm; best = r; }
+    });
+    if (!best) return null;
+    return {
+      available: true, share: Number(best.share), level: best.level, addon_pct: Number(best.addon_pct),
+      radius_km: Number(best.radius_km),
+      same_crop_ha: best.same_crop_ha != null ? Math.round(best.same_crop_ha) : null,
+      total_ha: best.total_ha != null ? Math.round(best.total_ha) : null,
+      n_parcels: best.n_parcels != null ? best.n_parcels : null,
+      source_label: (best.source_label || 'BRP precompute grid') + ' [cache ' + (Math.round(bestD * 10) / 10) + 'km]',
+      verified: false, basis: 'area (BRP precompute cache)',
+    };
+  } catch (e) { return null; }
+}
+
 // ── MAIN CALCULATION ENGINE ──────────────────────────────
 // sc  = shock scenario overlay (defaults to no shock)
 // mkt = live market overrides {diesel, carbon} from intelligence_benchmarks (defaults to table)
@@ -929,9 +964,14 @@ module.exports = async function handler(req, res) {
     // other countries => fail-loud stub. Enrichment only — never blocks the report on failure.
     if (d.farm_lat != null && d.farm_lon != null) {
       var concCountry = d.farm_country || countryOfCropRegion(resolveCropRegion(d, mkt)) || 'nl';
-      mkt.concentration = (concCountry === 'nl')
-        ? await getBRPConcentration(Number(d.farm_lat), Number(d.farm_lon), d.crop || 'green_beans')
-        : resolveConcentration(d, mkt);
+      if (concCountry === 'nl') {
+        var fLat = Number(d.farm_lat), fLon = Number(d.farm_lon), fCrop = d.crop || 'green_beans';
+        // Offline precompute cache first (instant; resolves the 15 km case), else live WFS (density-guarded).
+        mkt.concentration = (await getConcentrationFromCache(fLat, fLon, fCrop, SB_URL, SB_KEY))
+                          || (await getBRPConcentration(fLat, fLon, fCrop));
+      } else {
+        mkt.concentration = resolveConcentration(d, mkt);   // fail-loud stub for uk/dk/pt
+      }
     }
 
     // Step 1: JS calculation — instant (uses live market + regional overrides where available)
@@ -1105,3 +1145,10 @@ module.exports.resolveConcentration = resolveConcentration;
 module.exports.getBRPConcentration = getBRPConcentration;
 module.exports.CROP_CONCENTRATION = CROP_CONCENTRATION;
 module.exports.DRONTEN_EXAMPLE = DRONTEN_EXAMPLE;
+module.exports.haversineKm = haversineKm;
+module.exports.ringAreaHa = ringAreaHa;
+module.exports.ringCentroid = ringCentroid;
+module.exports.concentrationLevel = concentrationLevel;
+module.exports.cropRadiusKm = cropRadiusKm;
+module.exports.BRP_CROP_MATCH = BRP_CROP_MATCH;
+module.exports.getConcentrationFromCache = getConcentrationFromCache;
