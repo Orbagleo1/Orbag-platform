@@ -231,6 +231,23 @@ function buyerIsEU(loc) {
   if (loc == null || loc === '') return BUYER_IS_EU;
   return BUYER_IS_EU_BY_LOCATION[loc] != null ? BUYER_IS_EU_BY_LOCATION[loc] : BUYER_IS_EU;
 }
+// BLOK 1 (WORKORDER) — supply-country normaliser, the JS twin of the SQL orbag_supply_country().
+// Maps a buyer's free-text supply-preference region to the country used as the match-linkage
+// dimension (reports.country / match_key), so a buyer wanting NL supply links to a Dutch farmer.
+// Mirror this list with the SQL function when adding regions. Unknown -> null (won't link).
+function supplyCountry(region) {
+  var r = (region || '').toLowerCase();
+  if (!r.trim()) return null;
+  if (/nederland|groningen|friesland|drenthe|flevoland|zeeland|brabant|holland|utrecht|overijssel|gelderland|limburg/.test(r)) return 'nl';
+  if (r === 'no_preference') return 'nl';                 // NL home-market default (documented)
+  if (/uk|norfolk|britain|england|scotland|wales/.test(r)) return 'uk';
+  if (/belg/.test(r)) return 'be';
+  if (/france|frankrijk|beauce/.test(r)) return 'fr';
+  if (/german|duitsland/.test(r)) return 'de';
+  if (/moroc|marokko|egypt/.test(r)) return 'ma';
+  if (/turk|spain|spanje/.test(r)) return 'tr';
+  return null;
+}
 function customsCost(region, buyerEu) {
   // region is a resolved region object. Same customs area as the buyer => no border cost.
   if (!region) return 0;
@@ -1191,6 +1208,12 @@ module.exports = async function handler(req, res) {
         headers:{'Content-Type':'application/json','apikey':process.env.SUPABASE_KEY,'Authorization':'Bearer '+process.env.SUPABASE_KEY},
         body: JSON.stringify({ p: {
           company:d.company, sector:d.sector, crop:d.crop, region:d.region,
+          // BLOK 1: promoted analytical columns (match_key is generated DB-side from crop+country)
+          country: supplyCountry(d.region) || (d.buyerLocation || 'nl'),
+          report_type: 'buyer',
+          buyer_location: d.buyerLocation || 'nl',
+          risk_reduction: Math.round(calc.risk_reduction),
+          justified_farm_gate_price: justifiable_farm_price,
           volume:Number(d.volume), current_price:Number(d.currentPrice),
           premium:Number(d.premium), verdict:report.verdict,
           feasibility:report.kpis.feasibility_score,
@@ -1231,6 +1254,7 @@ module.exports.SCENARIOS = SCENARIOS;
 module.exports.cropCoefficients = cropCoefficients;
 module.exports.buildRegions = buildRegions;
 module.exports.buyerIsEU = buyerIsEU;
+module.exports.supplyCountry = supplyCountry;
 module.exports.concentrationFromParcels = concentrationFromParcels;
 module.exports.resolveConcentrationSync = resolveConcentrationSync;
 module.exports.resolveConcentrationGlobal = resolveConcentrationGlobal;

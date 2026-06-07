@@ -327,6 +327,11 @@ module.exports = async function handler(req, res) {
           company: d.farmName, sector: 'farmer',
           crop: (d.crops || []).join(','),
           region: d.farmRegion, volume: d.totalHa,
+          // BLOK 1: promoted columns. Dutch farms -> nl (or explicit farm_country). The DB
+          // generates match_key from crop+country; the report_match_keys view explodes the
+          // comma-joined crop list so each crop links to its buyers.
+          country: d.farm_country || 'nl',
+          report_type: 'farmer',
           current_price: d.currentIncome, premium: 0,
           verdict: report.verdict, feasibility: null,
           price_range: report.kpis.regen_income_ha,
