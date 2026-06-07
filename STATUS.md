@@ -82,6 +82,7 @@ Adding a country is a DB row (or an auto-bootstrap), not a code deploy.
 ---
 
 ## Backlog / next steps
+> 📋 **Wat op jóú wacht (credentials, dashboards, externe expertise, beslissingen): [`operations/OPEN-VOOR-JOU.md`](operations/OPEN-VOOR-JOU.md)** — één opvraagbare checklist.
 - ⬜ **Crop-concentration roadmap** — the worldwide layer is built (Tier-1 NL BRP / Tier-2 EU CLMS / Tier-3 global WorldCover). Open follow-ups (roll out coverage, validate more CLMS crop codes, openEO login refresh, rotate the SH secret, PostGIS scale path, global Tier-2 WorldCereal, agronomy validation) are tracked in **`operations/todo2-gewasconcentratie.md` §I**.
 - ⬜ **Sharpen provisional regions** — upgrade auto-bootstrapped regions from `provisional` → `active`: per-crop yield/price/variable-cost via FAOSTAT/Statista (through the Hanze library) + the deep-research harness. Bootstrap leaves price/variable-cost null on purpose (engine falls back to NL meanwhile).
 - ⬜ **Rate-limit the public RPCs** (`save_*`, `bootstrap_region`) — they are anon-callable (parity with the already-public `/api/generate`); add edge rate-limiting before scale.
