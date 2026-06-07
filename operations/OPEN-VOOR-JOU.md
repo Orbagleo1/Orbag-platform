@@ -4,7 +4,7 @@ _Living checklist. Alles wat klaarstaat maar op jou wacht: een credential, een d
 externe expertise, betaalde data, of een productbeslissing. Per punt staat exact wat ik van je
 nodig heb om verder te kunnen. Zeg **"pak punt X op"** en ik ga ermee aan de slag._
 
-_Laatst bijgewerkt: 2026-06-07. Bron: STATUS.md backlog + todo2 §I + todo3 + todo4._
+_Laatst bijgewerkt: 2026-06-07. Bron: STATUS.md backlog + todo2 §I + todo3 + todo4 + WORKORDER BLOK 1-4._
 
 ---
 
@@ -17,6 +17,13 @@ _Laatst bijgewerkt: 2026-06-07. Bron: STATUS.md backlog + todo2 §I + todo3 + to
   (`<tmp>/cdse_token.json`), of doe de device-flow samen met mij. Dan draai ik de one-call
   precompute over de regio's die jij wilt. _Productie zelf heeft dit NIET nodig (leest alleen cache)._
   → todo2 §I.1 / §I.2
+
+- [ ] **n8n Header Auth-credential maken (crawler-hardening).** De anon-key staat hardcoded in de
+  node-headers van de "Orbag Intelligence Crawler". De n8n-MCP kan **geen credential aanmaken**
+  (alleen koppelen). **Wat ik nodig heb:** maak in n8n één *Header Auth*-credential — Header Name
+  `apikey`, Value = de anon-key — en zeg "credential staat klaar". Dan koppel ik 'm aan "Supabase
+  opslaan" en haal ik de hardcoded `apikey`/`Authorization`-headers eruit. (Publieke anon-key, dus
+  geen lek — wel netter.) → WORKORDER BLOK 4 / `operations/blok4-crawler.md`
 
 ## 2. Dashboard-acties (alleen via een web-UI, CLI heeft geen toegang)
 
@@ -62,6 +69,15 @@ _Laatst bijgewerkt: 2026-06-07. Bron: STATUS.md backlog + todo2 §I + todo3 + to
   regen-doel modelleren i.p.v. alleen als bron. → STATUS backlog
 - [ ] **Taalswitcher NL/EN — prioriteit?** Bewust uitgesteld; ik kan 'm bouwen zodra je 'm wilt.
   → STATUS backlog
+- [ ] **Match-engine scoring-gewichten (WORKORDER BLOK 2-gate).** Datamodel + voorbeeldberekening
+  (nettowaarde per tonne na logistiek) staan klaar. De **weging** over niveau 1-3 (volume-fit,
+  seizoen, kwaliteit, certificering, contract, concentratie, groei, geopolitieke complementariteit)
+  is een **businessbeslissing**. **Wat ik nodig heb:** geef de gewichten/prioriteiten (of zeg "stel
+  een voorzet voor"), dan regel ik de ranking in `match.html` in. → WORKORDER BLOK 2
+- [ ] **ToS-akkoord oranje databronnen.** AHDB / SEGES / COTHN-GPP staan als ORANJE in
+  `intelligence_sources` (`scraping_allowed=false`). De crawler mag ze pas automatisch raadplegen na
+  een licentie/ToS-check. **Wat ik nodig heb:** jouw go (of de bevestigde reuse-voorwaarden) per
+  bron, dan zet ik 'm op groen/toegestaan. → WORKORDER BLOK 4
 
 ---
 
@@ -71,5 +87,7 @@ Deze hoeven niet op jou te wachten qua kunnen, alleen qua prioriteit; zeg het wo
 - `supabase db pull` om de 7 oudere migraties in de repo te baseline-en. (STATUS backlog)
 - Restant farmer-profiel-prefill (inkomen, kunstmestkosten, ambitie, etc.) persisteren. (todo4)
 - Held-count badge / wekelijkse samenvattingsmail / weather-cooldown. (STATUS backlog, optioneel)
+- Crawler-bron-uitbreiding: per groene bron (Eurostat/FAOSTAT/CBS…) een echte extractor bouwen op
+  `crawler_source_queue`. Fundament staat; per bron is het losse engineering. (WORKORDER BLOK 4)
 
 _Gebruik: zeg "pak punt X op" of "wat staat er open?" en ik werk uit dit document._
