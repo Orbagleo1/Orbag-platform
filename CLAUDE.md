@@ -44,4 +44,11 @@ There are three ways to add a region, in order of preference:
 
 **Tests:** `node tests/engine.test.js` runs offline regression fixtures (NL, UK→NL buyer, UK→UK buyer) that lock the current computed numbers. Run before committing any engine change.
 
-_Planned (NOT built): `RISK_PCT` gains a `crop_concentration` component — regional monoculture density feeding pest/disease risk, fed by BRP/LPIS parcel data + Copernicus/Sentinel. See `operations/module-gewasconcentratie.md`._
+## Crop-concentration risk layer (`crop_concentration`, todo2)
+An **enrichment** risk component (in `api/generate.js`): same-crop **area share** within a per-crop **pest radius** around a farm → low/medium/high → a risk add-on. It activates ONLY when the request supplies `farm_lat`/`farm_lon` (+ optional `farm_country`); otherwise it is omitted and the reason is surfaced — so requests without coordinates (and the todo.md fixtures) are unchanged.
+
+- **NL source = live BRP** (PDOK/RVO WFS, `brpgewaspercelen:BrpGewas`) with a **density preflight**: above the cap it defers with the exact parcel count instead of downloading. PDOK's WFS honours only the spatial `bbox` (no `cql_filter`/`propertyName`), so a 15 km radius in dense NL (~43k parcels) defers — dense radii need an offline precompute/cache. Smaller radii compute live (verified on real BRP data).
+- **Example/tests:** a hand-placed Dronten parcel set (`DRONTEN_EXAMPLE`) drives offline tests — `node tests/concentration.test.js`. No raw BRP committed.
+- **uk/dk/pt** parcel sources are explicit empty stubs (`PARCEL_SOURCES`) — fail loud (LPIS coverage UNVERIFIED).
+- ⚠ **Agronomy knobs, not engineering:** the per-crop `radius_km` and the `thresholds`/`addon_pct` live at the top of the layer marked `verified:false` ("voorlopige aanname, agronomische validatie vereist"). Validate with a plant pathologist before treating the numbers as real; structure allows a per-(crop,pest) table later.
+- **Out of scope (deferred):** NDVI/Sentinel vitality signal. See `operations/module-gewasconcentratie.md` + `operations/todo2-gewasconcentratie.md`.

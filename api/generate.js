@@ -308,6 +308,169 @@ var SCENARIOS = {
            geo_risk_add:{}},
 };
 
+// ── CROP-CONCENTRATION RISK LAYER (todo2) ────────────────
+// Measures how strongly ONE crop dominates the landscape around a farm: a higher same-crop share
+// within the pest-spread radius => higher pest/disease pressure => a risk add-on. This is an
+// ENRICHMENT layer — it only activates when the request supplies farm_lat/farm_lon AND a parcel
+// source is available; otherwise it is OMITTED (never silently zeroed) and the reason is surfaced.
+// Requests that don't use it compute exactly as before (the todo.md fixtures stay green).
+//
+// ⚠ AGRONOMY KNOBS — NOT ENGINEERING. The pest-spread RADIUS per crop and the concentration→risk
+// THRESHOLDS/ADD-ONS below are voorlopige aannames, agronomische validatie vereist (verified:false).
+// They are surfaced as explicit parameters, never buried in the math, and must NOT be presented as
+// established biology — a plant pathologist fills these later (ideally a per-(crop,pest) table).
+var CROP_CONCENTRATION = {
+  // Pest-spread radius (km) per crop. potatoes = worked example: late blight / phytophthora is
+  // wind-borne, so a larger effective radius than soil-borne pests. Absent crop => layer unavailable.
+  radius_km: { potatoes: 15 },                         // verified:false — voorlopige aanname, agronomische validatie vereist
+  // THREE-LEVEL threshold model on the same-crop share (NOT a continuous curve). CFO one-liner:
+  // "above <high> same-crop share within the pest radius, we raise the risk add-on to <high>%".
+  thresholds: { medium: 0.20, high: 0.45 },            // verified:false — voorlopige aanname, agronomische validatie vereist
+  addon_pct:  { low: 0.01, medium: 0.03, high: 0.06 }, // add-on as % of contract value // verified:false — voorlopige aanname
+  regen_addon_pct: 0.01,                               // diversified near-shored baseline // verified:false — voorlopige aanname
+  verified: false,
+};
+
+// Parcel-source registry, keyed by country (like REGIONAL_CROP_DATA). nl => BRP (PDOK/RVO).
+// uk/dk/pt are EXPLICIT empty stubs: LPIS availability/coverage per country is UNVERIFIED and must be
+// checked before use — do NOT assume EU-wide coverage. An unfilled country fails loud (explicit
+// unavailable reason), never a silent zero.
+var PARCEL_SOURCES = {
+  nl: { kind: 'brp', label: 'BRP Gewaspercelen (PDOK/RVO)' },
+  // uk: { kind: 'lpis', label: 'UK LPIS — UNVERIFIED coverage post-Brexit, TODO before use' },
+  // dk: { kind: 'lpis', label: 'DK LPIS (IACS) — UNVERIFIED coverage, TODO before use' },
+  // pt: { kind: 'lpis', label: 'PT LPIS (iSIP) — UNVERIFIED coverage, TODO before use' },
+};
+
+// BRP `gewas` (Dutch, granular: several potato categories) -> engine crop key, matched by substring.
+// verified:false — extend as crops are added.
+var BRP_CROP_MATCH = {
+  potatoes: ['aardappel'], wheat: ['tarwe'], onions: ['ui, ', 'uien', 'zaaiui', 'plantui'],
+  carrots: ['peen', 'wortel'], green_beans: ['boon', 'bonen'], peas: ['erwt'],
+  oats: ['haver'], lentils: ['linze'],
+};
+
+// Hand-placed example parcels around Dronten, Flevoland (~52.53N, 5.72E) — enough to exercise the
+// radius, clustering, share and threshold model offline. crop key + centroid + area_ha. One potato
+// parcel sits OUTSIDE the 15km radius to prove radius exclusion. NOT real BRP data (none committed).
+var DRONTEN_EXAMPLE = {
+  source_label: 'voorbeelddata Dronten (handmatig)', verified: false,
+  farm: { lat: 52.53, lon: 5.72 },
+  parcels: [
+    { crop: 'potatoes', lat: 52.535, lon: 5.725, area_ha: 20 },
+    { crop: 'potatoes', lat: 52.525, lon: 5.715, area_ha: 25 },
+    { crop: 'potatoes', lat: 52.540, lon: 5.730, area_ha: 15 },
+    { crop: 'wheat',    lat: 52.520, lon: 5.710, area_ha: 18 },
+    { crop: 'onions',   lat: 52.545, lon: 5.735, area_ha: 12 },
+    { crop: 'wheat',    lat: 52.515, lon: 5.705, area_ha: 10 },
+    { crop: 'potatoes', lat: 52.700, lon: 5.900, area_ha: 30 }, // ~22 km away -> excluded by radius
+  ],
+};
+
+function haversineKm(lat1, lon1, lat2, lon2) {
+  var R = 6371, toRad = function (x) { return x * Math.PI / 180; };
+  var dLat = toRad(lat2 - lat1), dLon = toRad(lon2 - lon1);
+  var a = Math.sin(dLat/2)*Math.sin(dLat/2) +
+          Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)*Math.sin(dLon/2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+// Map a same-crop share to {level, addon_pct} via the three-level threshold model.
+function concentrationLevel(share) {
+  var t = CROP_CONCENTRATION.thresholds, a = CROP_CONCENTRATION.addon_pct;
+  if (share >= t.high)   return { level: 'high',   addon_pct: a.high };
+  if (share >= t.medium) return { level: 'medium', addon_pct: a.medium };
+  return { level: 'low', addon_pct: a.low };
+}
+// Pure pipeline: same-crop area share within the pest radius around the farm -> risk model.
+// parcels each carry {crop, lat, lon, area_ha}. Returns an explicit available/unavailable result.
+function concentrationFromParcels(farmLat, farmLon, crop, parcels, sourceLabel, basis) {
+  var radius = CROP_CONCENTRATION.radius_km[crop];
+  if (radius == null) return { available: false, reason: 'no pest-radius defined for crop "' + crop + '" (agronomy knob unfilled)' };
+  if (farmLat == null || farmLon == null) return { available: false, reason: 'no farm coordinates supplied' };
+  var inR = parcels.filter(function (p) { return haversineKm(farmLat, farmLon, p.lat, p.lon) <= radius; });
+  var total = inR.reduce(function (s, p) { return s + (p.area_ha || 0); }, 0);
+  if (total <= 0) return { available: false, reason: 'no agricultural parcels within ' + radius + ' km of the farm' };
+  var same = inR.filter(function (p) { return p.crop === crop; }).reduce(function (s, p) { return s + (p.area_ha || 0); }, 0);
+  var share = same / total;
+  var lvl = concentrationLevel(share);
+  return {
+    available: true, share: share, level: lvl.level, addon_pct: lvl.addon_pct, radius_km: radius,
+    same_crop_ha: Math.round(same), total_ha: Math.round(total), n_parcels: inR.length,
+    source_label: sourceLabel, verified: false, basis: basis || 'area',
+  };
+}
+// Country for a crop region (concentration uses the FARM's country to pick the parcel source).
+function countryOfCropRegion(cropRegion) {
+  if (!cropRegion) return 'nl';
+  if (cropRegion === 'nl') return 'nl';
+  return cropRegion.split('_')[0];   // e.g. uk_norfolk -> uk
+}
+// Sync resolver (offline / example + fail-loud stubs). The real NL source is live BRP (async, handler).
+function resolveConcentration(d, mkt) {
+  var crop = d.crop || 'green_beans';
+  var cropRegion = resolveCropRegion(d, mkt);
+  var country = d.farm_country || countryOfCropRegion(cropRegion) || 'nl';
+  var src = PARCEL_SOURCES[country];
+  if (!src) return { available: false, country: country, reason: 'no parcel source for country "' + country + '" (LPIS coverage UNVERIFIED — stub not filled)' };
+  if (country === 'nl') {
+    return concentrationFromParcels(d.farm_lat, d.farm_lon, crop, DRONTEN_EXAMPLE.parcels, DRONTEN_EXAMPLE.source_label, 'area (example)');
+  }
+  return { available: false, country: country, reason: 'parcel source "' + src.kind + '" for ' + country + ' not implemented' };
+}
+
+// ── LIVE BRP SOURCE (PDOK/RVO) ───────────────────────────
+// PDOK's BRP WFS honours the spatial `bbox` param but NOT cql_filter or propertyName, so there is no
+// server-side crop filter and geometry always comes back. A density PREFLIGHT (resultType=hits, which
+// IS honoured) guards the serverless budget: above the cap we defer with the exact parcel count
+// instead of downloading tens of thousands of polygons.
+var BRP_BASE = 'https://service.pdok.nl/rvo/brpgewaspercelen/wfs/v1_0?service=WFS&version=2.0.0&typeName=brpgewaspercelen:BrpGewas';
+function brpBbox(farmLat, farmLon, radiusKm) {
+  var dLat = radiusKm / 111, dLon = radiusKm / (111 * Math.cos(farmLat * Math.PI / 180));
+  return [farmLat - dLat, farmLon - dLon, farmLat + dLat, farmLon + dLon].join(',') + ',urn:ogc:def:crs:EPSG::4326';
+}
+function ringCentroid(ring) { var n = ring.length - 1, lo = 0, la = 0; for (var i = 0; i < n; i++) { lo += ring[i][0]; la += ring[i][1]; } return { lon: lo / n, lat: la / n }; }
+function ringAreaHa(ring) {
+  if (!ring || ring.length < 4) return 0;
+  var lat0 = ring[0][1] * Math.PI / 180, mLat = 110540, mLon = 111320 * Math.cos(lat0), s = 0;
+  for (var i = 0; i < ring.length - 1; i++) { s += (ring[i][0]*mLon)*(ring[i+1][1]*mLat) - (ring[i+1][0]*mLon)*(ring[i][1]*mLat); }
+  return Math.abs(s) / 2 / 10000;   // m² -> ha
+}
+async function getBRPConcentration(farmLat, farmLon, crop, cap) {
+  cap = cap || 6000;
+  var radius = CROP_CONCENTRATION.radius_km[crop];
+  if (radius == null) return { available: false, reason: 'no pest-radius for crop "' + crop + '"' };
+  var match = BRP_CROP_MATCH[crop];
+  if (!match) return { available: false, reason: 'no BRP crop mapping for "' + crop + '"' };
+  if (farmLat == null || farmLon == null) return { available: false, reason: 'no farm coordinates supplied' };
+  var bbox = brpBbox(farmLat, farmLon, radius);
+  try {
+    var hitsXml = await (await fetch(BRP_BASE + '&request=GetFeature&resultType=hits&bbox=' + encodeURIComponent(bbox))).text();
+    var m = hitsXml.match(/numberMatched="(\d+)"/i);
+    var n = m ? Number(m[1]) : null;
+    if (n == null) return { available: false, reason: 'BRP preflight failed (no numberMatched)' };
+    if (n > cap) return { available: false, deferred: true, count: n, source_label: 'BRP Gewaspercelen (PDOK/RVO)',
+      reason: 'BRP parcel density too high for in-request computation: ' + n + ' parcels within ' + radius + ' km (cap ' + cap + '). PDOK BRP WFS has no server-side crop filter, so this needs an offline precompute/cache step.' };
+    var gj = await (await fetch(BRP_BASE + '&request=GetFeature&outputFormat=application/json&srsName=EPSG:4326&count=' + cap + '&bbox=' + encodeURIComponent(bbox))).json();
+    var year = gj.features && gj.features[0] && gj.features[0].properties && gj.features[0].properties.jaar;
+    var parcels = (gj.features || []).map(function (f) {
+      var g = f.geometry; if (!g) return null;
+      var ring = g.type === 'Polygon' ? g.coordinates[0] : g.type === 'MultiPolygon' ? g.coordinates[0][0] : null;
+      if (!ring) return null;
+      var c = ringCentroid(ring);
+      return { gewas: (f.properties && f.properties.gewas) || '', lat: c.lat, lon: c.lon, area_ha: ringAreaHa(ring) };
+    }).filter(Boolean);
+    var inR = parcels.filter(function (p) { return haversineKm(farmLat, farmLon, p.lat, p.lon) <= radius; });
+    var total = inR.reduce(function (s, p) { return s + p.area_ha; }, 0);
+    if (total <= 0) return { available: false, reason: 'no BRP parcels within ' + radius + ' km' };
+    var hit = function (g) { g = (g || '').toLowerCase(); return match.some(function (sub) { return g.indexOf(sub) >= 0; }); };
+    var same = inR.filter(function (p) { return hit(p.gewas); }).reduce(function (s, p) { return s + p.area_ha; }, 0);
+    var share = same / total, lvl = concentrationLevel(share);
+    return { available: true, share: share, level: lvl.level, addon_pct: lvl.addon_pct, radius_km: radius,
+      same_crop_ha: Math.round(same), total_ha: Math.round(total), n_parcels: inR.length,
+      source_label: 'BRP Gewaspercelen (PDOK/RVO)' + (year ? ' ' + year : ''), verified: false, basis: 'area (live BRP)' };
+  } catch (e) { return { available: false, reason: 'BRP fetch error: ' + e.message }; }
+}
+
 // ── MAIN CALCULATION ENGINE ──────────────────────────────
 // sc  = shock scenario overlay (defaults to no shock)
 // mkt = live market overrides {diesel, carbon} from intelligence_benchmarks (defaults to table)
@@ -373,10 +536,20 @@ function calculate(d, sc, mkt) {
   var nit_regen    = Math.round(k.nitrate_reject_regen * k.nitrate_cost);
   var nit_basis    = Math.round(k.nitrate_reject_conv*100) + '% rejection risk × €' + k.nitrate_cost.toLocaleString() + '/incident for ' + crop.replace('_',' ');
 
-  // 8. Logistics saving (near-shoring benefit) — computed below at line ~192
+  // 8. Crop concentration (todo2) — enrichment; activates ONLY when farm coords + a parcel source
+  //    are present. mkt.concentration (live BRP, resolved in the handler) wins; else the sync
+  //    example/stub resolver. Unavailable => omitted from totals (never silently zeroed).
+  var cropConc = (mkt && mkt.concentration) || ((d.farm_lat != null && d.farm_lon != null) ? resolveConcentration(d, mkt) : null);
+  var cropconc_current = 0, cropconc_regen = 0;
+  if (cropConc && cropConc.available) {
+    cropconc_current = Math.round(cv * cropConc.addon_pct);
+    cropconc_regen   = Math.round(cv * CROP_CONCENTRATION.regen_addon_pct);
+  }
 
-  var current_total = geo_current + wthr_current + qual_current + pvol_current + csrd_current + conc_current + nit_current;
-  var regen_total   = geo_regen   + wthr_regen   + qual_regen   + pvol_regen   + csrd_regen   + conc_regen   + nit_regen;
+  // 9. Logistics saving (near-shoring benefit) — computed below
+
+  var current_total = geo_current + wthr_current + qual_current + pvol_current + csrd_current + conc_current + nit_current + cropconc_current;
+  var regen_total   = geo_regen   + wthr_regen   + qual_regen   + pvol_regen   + csrd_regen   + conc_regen   + nit_regen   + cropconc_regen;
   var risk_reduction = current_total - regen_total;
 
   // Processing economics with delivery spec + sector modifiers
@@ -489,7 +662,27 @@ function calculate(d, sc, mkt) {
       {layer:'CSRD / regulatory',current:csrd_current, regen:csrd_regen, reduction:csrd_current-csrd_regen,  basis:csrd_basis},
       {layer:'Supplier conc.',   current:conc_current, regen:conc_regen, reduction:conc_current-conc_regen,  basis:conc_basis},
       {layer:'Nitrate rejection',current:nit_current,  regen:nit_regen,  reduction:nit_current-nit_regen,    basis:nit_basis},
-    ],
+    ].concat(cropConc && cropConc.available ? [{
+      layer:'Crop concentration', current:cropconc_current, regen:cropconc_regen, reduction:cropconc_current-cropconc_regen,
+      basis: Math.round(cropConc.share*100) + '% same-crop share within ' + cropConc.radius_km + 'km (' + cropConc.level + ') — ' + cropConc.source_label + ' [verified:false, provisional agronomy]',
+    }] : []),
+    concentration: cropConc ? {
+      available: cropConc.available,
+      status: cropConc.available ? 'computed'
+            : (cropConc.deferred ? 'unavailable (deferred) — ' + cropConc.reason : 'unavailable — ' + (cropConc.reason || 'unknown')),
+      share_pct: cropConc.available ? Math.round(cropConc.share*1000)/10 : null,
+      level: cropConc.level || null,
+      addon_pct: cropConc.available ? Math.round(cropConc.addon_pct*1000)/10 : null,
+      current: cropconc_current, regen: cropconc_regen,
+      radius_km: cropConc.radius_km || null,
+      same_crop_ha: cropConc.same_crop_ha != null ? cropConc.same_crop_ha : null,
+      total_ha: cropConc.total_ha != null ? cropConc.total_ha : null,
+      n_parcels: cropConc.n_parcels != null ? cropConc.n_parcels : null,
+      parcel_count_in_radius: cropConc.count != null ? cropConc.count : null,
+      source_label: cropConc.source_label || null,
+      basis: cropConc.basis || null,
+      verified: false,
+    } : { available: false, status: 'not requested (no farm coordinates supplied)' },
     logistics: logistics_breakdown,
     processing: {
       tare_saving_per_tonne:  tare_saving,
@@ -706,6 +899,15 @@ module.exports = async function handler(req, res) {
     mkt.regions  = mktAndRegional[1].regions;
     mkt.cropData = mktAndRegional[1].cropData;
 
+    // Crop-concentration (todo2): only when farm coords are supplied. NL => live BRP (density-guarded);
+    // other countries => fail-loud stub. Enrichment only — never blocks the report on failure.
+    if (d.farm_lat != null && d.farm_lon != null) {
+      var concCountry = d.farm_country || countryOfCropRegion(resolveCropRegion(d, mkt)) || 'nl';
+      mkt.concentration = (concCountry === 'nl')
+        ? await getBRPConcentration(Number(d.farm_lat), Number(d.farm_lon), d.crop || 'green_beans')
+        : resolveConcentration(d, mkt);
+    }
+
     // Step 1: JS calculation — instant (uses live market + regional overrides where available)
     var calc = calculate(d, SCENARIOS.none, mkt);
     var sensitivity = buildSensitivity(d, mkt);
@@ -808,6 +1010,7 @@ module.exports = async function handler(req, res) {
       },
       sensitivity: sensitivity,
       scenario_stress: shockScenarios,
+      concentration: calc.concentration,
       supply_analysis: nar.supply_analysis,
       pricing_analysis: nar.pricing_analysis,
       logistics_note: nar.logistics_note,
@@ -871,3 +1074,8 @@ module.exports.SCENARIOS = SCENARIOS;
 module.exports.cropCoefficients = cropCoefficients;
 module.exports.buildRegions = buildRegions;
 module.exports.buyerIsEU = buyerIsEU;
+module.exports.concentrationFromParcels = concentrationFromParcels;
+module.exports.resolveConcentration = resolveConcentration;
+module.exports.getBRPConcentration = getBRPConcentration;
+module.exports.CROP_CONCENTRATION = CROP_CONCENTRATION;
+module.exports.DRONTEN_EXAMPLE = DRONTEN_EXAMPLE;
